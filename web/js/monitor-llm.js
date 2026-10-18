@@ -24,7 +24,7 @@ const kfmt=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e4?(n/1e3).toFixed(1)+'k':String
 export function llmDraw(D,ts,col,sp,ch,curL){
   const el=$('#mon-llm'), last=D[D.length-1].apps&&D[D.length-1].apps.llama;
   if(!last){el.innerHTML='';el._built=false;return}      // モデルが動いていないときは出さない
-  if(last.metrics===false){el.innerHTML='<div class="mon-h">LLM 使用状況</div><div class="svc" style="padding:14px 18px"><span class="sub">llama-server が <code>--metrics</code> なしで動いているため、集計できません。ハブから起動すると、自動で有効になります。</span></div>';el._built=false;return}
+  if(last.metrics===false){el.innerHTML='<div class="mon-h">LLM 使用状況</div><div class="svc" style="padding:14px 18px"><span class="sub">llama-server が <code>--metrics</code> なしで動いているため、集計できません。ダッシュボードから起動すると、自動で有効になります。</span></div>';el._built=false;return}
   if(!el._built){
     el.innerHTML=`<div class="mon-h">LLM 使用状況 <span class="sub" id="llm-sub"></span></div><div class="mon-tiles">${tileHtml('ldec','生成速度','gpu')}${tileHtml('lpre','入力処理速度','vram')}${tileHtml('ltok','使用トークン','mem')}
       <div class="mtile"><div class="mt-h">${ico('io')}<span>コンテキスト</span></div><div style="display:flex;align-items:center;gap:14px;margin:8px 0 14px"><canvas id="lgauge" style="width:92px;height:92px;margin:0;flex:none"></canvas><div><div class="mt-v" style="margin:0"><b id="lgv">0</b><small>%</small></div><div class="mt-s" id="lgs" style="min-height:0">&nbsp;</div></div></div></div></div>

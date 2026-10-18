@@ -59,7 +59,7 @@ function monDraw(){
   const m=state.monMeta, all=MONS, last=all[all.length-1];
   const D=all;  // 保持している全期間(最大 3 時間)
   const have=(last.t-all[0].t)/60;
-  note.textContent=`${m.interval} 秒ごとに記録 · 保持 ${have<60?Math.max(1,Math.round(have))+' 分':(have/60).toFixed(1)+' 時間'} / 最大 ${m.hours} 時間 · ハブを停止するとリセット`;
+  note.textContent=`${m.interval} 秒ごとに記録 · 保持 ${have<60?Math.max(1,Math.round(have))+' 分':(have/60).toFixed(1)+' 時間'} / 最大 ${m.hours} 時間 · ダッシュボードを停止するとリセット`;
   const pc=m.pc||{};
   const pcRows=[['ホスト名',pc.hostname],['OS',[pc.os,pc.kernel?'Linux '+pc.kernel:'',pc.arch].filter(Boolean).join(' · ')],
     ['CPU',`${pc.cpu_model||'-'}${pc.cores?' · '+pc.cores+' コア':''} / ${m.cpus} スレッド`],['メモリ',`${m.mem_total_gb.toFixed(0)} GB`+(m.swap_total_gb>0.1?`(スワップ ${m.swap_total_gb.toFixed(0)} GB)`:'')],

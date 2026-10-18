@@ -42,7 +42,7 @@ export function drawSPanel(name){
 const homeify=p=>String(p).replace(/^\/home\/[^/]+/,'~');
 export function svcDialog(name){
   const s=state.status.services[name], run=s.state!=='stopped';
-  const portNote=(s.type==='llama'||s.launcher)?'ハブが起動するときに、このポートを指定します。':'ハブは状態の確認にだけ使います。起動スクリプトが使うポートと一致させてください。';
+  const portNote=(s.type==='llama'||s.launcher)?'ダッシュボードが起動するときに、このポートを指定します。':'ダッシュボードは状態の確認にだけ使います。起動スクリプトが使うポートと一致させてください。';
   $('#box').innerHTML=`<h3>⚙ ${esc(s.label)} の設定</h3>
     ${run?'<p style="color:var(--warn)">起動中は変更できません。先に停止してください。</p>':''}
     <div class="f" style="align-items:start"><label>インストール場所</label><div style="min-width:0"><input id="sc-dir" value="${esc(s.dir)}"><div class="sub" id="sc-dirhint" style="margin-top:3px;word-break:break-all"></div></div></div>
