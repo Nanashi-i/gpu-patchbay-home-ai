@@ -59,7 +59,7 @@ GPU Patchbay を起動しました。PID: 12345
 - 標準の場所にソフトがあれば、そのまま動きます。
 - **別の場所にある場合**は、ダッシュボードの各サービスの **⚙** から、インストール場所を指定します。標準の場所に無くても、ホーム直下などによくある場所を探して、見つかれば「これを使う」と提案します。
 - 使わないサービスは、⚙ で「使わない」にすると、「未導入・非表示のサービス」にまとまります。
-- 設定ファイルを直接書く人は、`machine.json` の先頭にある `root` / `apps_root` / `models_root` で、親フォルダをまとめて変えられます(→ [仕様書](docs/spec.html))。
+- 設定ファイルを直接書く人は、`machine.json` の先頭にある `root` / `apps_root` / `models_root` で、親フォルダをまとめて変えられます(→ [仕様書](https://nanashi-i.github.io/gpu-patchbay-home-ai/))。
 
 ### 別の端末から使う(LAN に公開する)
 
@@ -176,10 +176,10 @@ gpu-patchbay-home-ai/
 ├── start.sh / stop.sh     ハブの起動(バックグラウンド)・停止 / systemd サービスの登録(オプション)
 ├── machine.example.json   設定の雛形
 ├── presets.example.json   プリセットの雛形
-└── docs/spec.html         仕様書(構成・アプリの約束・API・設計レビュー)
+└── docs/index.html        仕様書(構成・アプリの約束・API・設計レビュー。GitHub Pages で公開)
 ```
 
-設計の詳細は、**[仕様書(docs/spec.html)](docs/spec.html)** を参照してください。
+設計の詳細は、**[仕様書](https://nanashi-i.github.io/gpu-patchbay-home-ai/)**(GitHub Pages で公開。ファイルは `docs/index.html`)を参照してください。
 
 ## 開発する人向け
 
