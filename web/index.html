@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPU Patchbay Home AI</title>
+<script>try{var t=localStorage.getItem('patchbay-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/themes.css">
+</head>
+<body>
+<header>
+  <h1>GPU Patchbay</h1>
+  <nav><button data-tab="dash" class="on">サービス</button><button data-tab="mon">モニター</button><button data-tab="models">モデル</button><button data-tab="dl">ダウンロード</button></nav>
+  <div class="tp"><button class="b" id="tp-btn">🎨 テーマ</button><div id="tp-pop" class="hide"></div></div>
+</header>
+<main>
+  <div id="ops"></div>
+  <section id="tab-dash"></section>
+  <section id="tab-mon" class="hide"></section>
+  <section id="tab-models" class="hide"></section>
+  <section id="tab-dl" class="hide"></section>
+</main>
+<div class="modal" id="modal"><div class="box" id="box"></div></div>
+<datalist id="modellist"></datalist>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

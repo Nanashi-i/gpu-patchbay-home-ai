@@ -1,0 +1,2 @@
+/* name: 淡いピンク | swatch: #fdeef4 #fffafc #d6458c | order: 40 */
+html[data-theme=pink]{color-scheme:light;--bg:#fdeef4;--panel:#fffafc;--line:#f3d0df;--fg:#3b2230;--mute:#8d6678;--acc:#d6458c;--ok:#2f9e72;--warn:#d98a00;--err:#c0392b;--on-acc:#fff;--c2:#2f9e9e;--c3:#8b5cf6}

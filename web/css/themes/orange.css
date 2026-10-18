@@ -1,0 +1,2 @@
+/* name: 淡いオレンジ | swatch: #fff3e6 #fffdf9 #e8802a | order: 30 */
+html[data-theme=orange]{color-scheme:light;--bg:#fff3e6;--panel:#fffdf9;--line:#f2d9bd;--fg:#3a2a1a;--mute:#8a6d52;--acc:#e8802a;--ok:#2e9e6a;--warn:#c9a000;--err:#d64545;--on-acc:#fff;--c2:#2a9d8f;--c3:#3b82c4}

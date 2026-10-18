@@ -1,0 +1,384 @@
+{
+  "host": "127.0.0.1",
+  "port": 5000,
+  "token": "",
+  "allowed_hosts": [],
+  "allow_private_downloads": false,
+  "root": "{home}",
+  "apps_root": "{root}/ai-apps",
+  "models_root": "{root}/ai-models",
+  "state_dir": "{home}/.local/state/gpu-patchbay-home-ai",
+  "services": {
+    "llama": {
+      "label": "llama.cpp",
+      "type": "llama",
+      "group": "gpu",
+      "port": 8080,
+      "dir": "{apps_root}/llama.cpp",
+      "bin": "build/bin/llama-server",
+      "base_args": "-np 1",
+      "models_dir": "{models_root}/llama",
+      "exts": [
+        ".gguf"
+      ],
+      "homepage": "https://github.com/ggml-org/llama.cpp",
+      "detect_names": [
+        "llama.cpp",
+        "llama-cpp"
+      ]
+    },
+    "strata": {
+      "label": "Strata",
+      "type": "script",
+      "group": "gpu",
+      "port": 8080,
+      "dir": "{apps_root}/Strata",
+      "scan": "run-*.sh",
+      "marker": "serve/server.py",
+      "detect_names": [
+        "Strata"
+      ],
+      "api_key": {
+        "env": "STRATA_API_KEY"
+      },
+      "models_dir": "{models_root}/strata",
+      "exts": [
+        ".gguf"
+      ],
+      "refs_glob": "strata-*.json"
+    },
+    "comfy": {
+      "label": "ComfyUI",
+      "type": "script",
+      "group": "gpu",
+      "port": 8188,
+      "dir": "{apps_root}/ComfyUI",
+      "marker": "main.py",
+      "homepage": "https://github.com/comfyanonymous/ComfyUI",
+      "detect_names": [
+        "ComfyUI"
+      ],
+      "launcher": {
+        "venv": "venv",
+        "script": "main.py",
+        "args": "--listen 127.0.0.1 --port {port}",
+        "auto_venv": false
+      },
+      "models_dir": "{models_root}/comfyui",
+      "exts": [
+        ".safetensors",
+        ".ckpt",
+        ".pt",
+        ".pth",
+        ".bin",
+        ".gguf",
+        ".sft"
+      ],
+      "view": {
+        "yaml": "{apps_root}/ComfyUI/extra_model_paths.yaml",
+        "dir": "{models_root}/.view/comfyui"
+      },
+      "categories": [
+        {
+          "key": "checkpoints",
+          "label": "チェックポイント",
+          "hint": "SD1.5 / SDXL / Pony など単体モデル",
+          "roles": [
+            "checkpoint"
+          ],
+          "link": {
+            "forge": "Stable-diffusion"
+          }
+        },
+        {
+          "key": "diffusion_models",
+          "label": "拡散モデル(UNet/DiT)",
+          "hint": "Flux / Wan / Qwen-Image / GGUF 版など",
+          "roles": [
+            "diffusion"
+          ]
+        },
+        {
+          "key": "text_encoders",
+          "label": "テキストエンコーダ",
+          "hint": "T5 / UMT5 / Qwen-VL など",
+          "roles": [
+            "textenc"
+          ]
+        },
+        {
+          "key": "clip",
+          "label": "CLIP",
+          "hint": "clip_l / clip_g など",
+          "roles": [
+            "clip"
+          ],
+          "link": {
+            "forge": "text_encoder"
+          }
+        },
+        {
+          "key": "vae",
+          "label": "VAE",
+          "hint": "",
+          "roles": [
+            "vae"
+          ],
+          "link": {
+            "forge": "VAE"
+          }
+        },
+        {
+          "key": "loras",
+          "label": "LoRA",
+          "hint": "",
+          "roles": [
+            "lora"
+          ],
+          "link": {
+            "forge": "Lora"
+          }
+        },
+        {
+          "key": "controlnet",
+          "label": "ControlNet",
+          "hint": "",
+          "roles": [
+            "controlnet"
+          ],
+          "link": {
+            "forge": "ControlNet"
+          }
+        },
+        {
+          "key": "embeddings",
+          "label": "Embeddings",
+          "hint": "Textual Inversion",
+          "roles": [
+            "embedding"
+          ],
+          "link": {
+            "forge": "embeddings"
+          }
+        },
+        {
+          "key": "upscale_models",
+          "label": "アップスケーラ",
+          "hint": "ESRGAN 系",
+          "roles": [
+            "upscale"
+          ],
+          "link": {
+            "forge": "ESRGAN"
+          }
+        },
+        {
+          "key": "clip_vision",
+          "label": "CLIP Vision",
+          "hint": "IP-Adapter 等で使用",
+          "roles": [
+            "clipvision"
+          ]
+        },
+        {
+          "key": "animatediff_models",
+          "label": "AnimateDiff モーション",
+          "hint": "",
+          "roles": [
+            "animatediff"
+          ]
+        },
+        {
+          "key": "animatediff_motion_lora",
+          "label": "AnimateDiff モーションLoRA",
+          "hint": "",
+          "roles": [
+            "animatediff_lora"
+          ]
+        },
+        {
+          "key": "style_models",
+          "label": "スタイルモデル",
+          "hint": "",
+          "roles": [
+            "style"
+          ]
+        },
+        {
+          "key": "latent_upscale_models",
+          "label": "Latent アップスケーラ",
+          "hint": "",
+          "roles": [
+            "latent_upscale"
+          ]
+        },
+        {
+          "key": "audio_encoders",
+          "label": "オーディオエンコーダ",
+          "hint": "",
+          "roles": [
+            "audio"
+          ]
+        }
+      ]
+    },
+    "forge": {
+      "label": "Forge",
+      "type": "script",
+      "group": "gpu",
+      "port": 7860,
+      "dir": "{apps_root}/stable-diffusion-webui-forge",
+      "marker": "launch.py",
+      "homepage": "https://github.com/lllyasviel/stable-diffusion-webui-forge",
+      "detect_names": [
+        "stable-diffusion-webui-forge",
+        "sd-webui-forge"
+      ],
+      "launcher": {
+        "python": "python3.11",
+        "venv": "venv",
+        "script": "launch.py",
+        "args": "--skip-python-version-check --port {port} --api",
+        "python_versions": [
+          "3.10",
+          "3.11"
+        ],
+        "env": {
+          "NO_TCMALLOC": "True"
+        }
+      },
+      "models_dir": "{models_root}/forge",
+      "exts": [
+        ".safetensors",
+        ".ckpt",
+        ".pt",
+        ".pth",
+        ".bin",
+        ".gguf",
+        ".sft"
+      ],
+      "view": {
+        "dir": "{models_root}/.view/forge",
+        "saved_modules": {
+          "file": "{home}/stable-diffusion-webui-forge/config.json",
+          "key": "forge_additional_modules",
+          "categories": [
+            "VAE",
+            "text_encoder"
+          ]
+        }
+      },
+      "dir_args": [
+        [
+          "--ckpt-dir",
+          "Stable-diffusion"
+        ],
+        [
+          "--lora-dir",
+          "Lora"
+        ],
+        [
+          "--vae-dir",
+          "VAE"
+        ],
+        [
+          "--embeddings-dir",
+          "embeddings"
+        ],
+        [
+          "--controlnet-dir",
+          "ControlNet"
+        ],
+        [
+          "--esrgan-models-path",
+          "ESRGAN"
+        ],
+        [
+          "--text-encoder-dir",
+          "text_encoder"
+        ]
+      ],
+      "categories": [
+        {
+          "key": "Stable-diffusion",
+          "label": "チェックポイント",
+          "hint": "SD / SDXL / Flux 単体モデル",
+          "roles": [
+            "checkpoint",
+            "diffusion"
+          ],
+          "link": {
+            "comfy": "checkpoints"
+          }
+        },
+        {
+          "key": "Lora",
+          "label": "LoRA",
+          "hint": "",
+          "roles": [
+            "lora"
+          ],
+          "link": {
+            "comfy": "loras"
+          }
+        },
+        {
+          "key": "VAE",
+          "label": "VAE",
+          "hint": "",
+          "roles": [
+            "vae"
+          ],
+          "link": {
+            "comfy": "vae"
+          }
+        },
+        {
+          "key": "text_encoder",
+          "label": "テキストエンコーダ/CLIP",
+          "hint": "clip_l / t5xxl など",
+          "roles": [
+            "textenc",
+            "clip"
+          ],
+          "link": {
+            "comfy": "clip"
+          }
+        },
+        {
+          "key": "embeddings",
+          "label": "Embeddings",
+          "hint": "",
+          "roles": [
+            "embedding"
+          ],
+          "link": {
+            "comfy": "embeddings"
+          }
+        },
+        {
+          "key": "ControlNet",
+          "label": "ControlNet",
+          "hint": "",
+          "roles": [
+            "controlnet"
+          ],
+          "link": {
+            "comfy": "controlnet"
+          }
+        },
+        {
+          "key": "ESRGAN",
+          "label": "アップスケーラ",
+          "hint": "",
+          "roles": [
+            "upscale"
+          ],
+          "link": {
+            "comfy": "upscale_models"
+          }
+        }
+      ]
+    }
+  }
+}

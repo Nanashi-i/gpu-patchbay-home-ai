@@ -1,0 +1,2 @@
+/* name: 淡い青 | swatch: #eaf3fc #fbfdff #2f80d1 | order: 20 */
+html[data-theme=blue]{color-scheme:light;--bg:#eaf3fc;--panel:#fbfdff;--line:#cfe0f1;--fg:#1b2a3a;--mute:#5f7388;--acc:#2f80d1;--ok:#1fa971;--warn:#d98a00;--err:#d64550;--on-acc:#fff;--c2:#14a3a3;--c3:#8b6fd6}

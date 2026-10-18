@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPU Patchbay Home AI 仕様書</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--line:#dfe3e8;--fg:#1c2026;--mute:#667085;--acc:#1a73e8;--ok:#13a05f;--warn:#c77d00;--err:#d4313f;--code:#eef1f5}
+@media (prefers-color-scheme: dark){:root{--bg:#14161a;--panel:#1d2026;--line:#2c313a;--fg:#e6e8eb;--mute:#8b93a1;--acc:#4f9dff;--ok:#3ecf8e;--warn:#f5a524;--err:#f0616d;--code:#262a31}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.75 system-ui,"Noto Sans JP",sans-serif}
+.wrap{max-width:1060px;margin:0 auto;padding:28px 18px 80px;display:grid;grid-template-columns:210px 1fr;gap:34px}
+nav{position:sticky;top:20px;align-self:start;font-size:13px;line-height:1.9}
+nav b{display:block;margin-bottom:6px}
+nav a{display:block;color:var(--mute);text-decoration:none;padding:0 8px;border-left:2px solid var(--line)}
+nav a:hover{color:var(--acc);border-color:var(--acc)}
+main{min-width:0}
+h1{font-size:28px;margin:0 0 4px}h2{font-size:21px;margin:46px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+h3{font-size:16px;margin:26px 0 8px}
+p{margin:8px 0}.sub{color:var(--mute);font-size:13px}
+table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:13.5px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--code);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--code);border-radius:5px}
+code{padding:1px 5px}pre{padding:12px 14px;overflow:auto;line-height:1.55}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0}
+.tag{display:inline-block;font-size:11px;padding:0 8px;border-radius:9px;color:#fff;vertical-align:middle;font-weight:600;white-space:nowrap}
+.hi{background:var(--err)}.mid{background:var(--warn)}.lo{background:var(--mute)}.good{background:var(--ok)}
+.svgbox{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin:12px 0;overflow:auto}
+svg text{fill:var(--fg);font:12px system-ui,"Noto Sans JP",sans-serif}svg .m{fill:var(--mute)}
+svg .b{fill:var(--panel);stroke:var(--line);stroke-width:1.5}svg .a{fill:none;stroke:var(--mute);stroke-width:1.4;marker-end:url(#ah)}
+svg .lz{fill:none;stroke:var(--mute);stroke-width:1.4;stroke-dasharray:5 4;marker-end:url(#ah)}
+svg .acc{fill:color-mix(in srgb,var(--acc) 12%,var(--panel));stroke:var(--acc)}svg .okb{fill:color-mix(in srgb,var(--ok) 12%,var(--panel));stroke:var(--ok)}
+svg .wb{fill:color-mix(in srgb,var(--warn) 14%,var(--panel));stroke:var(--warn)}
+ol.flow{counter-reset:s;list-style:none;padding:0}ol.flow li{counter-increment:s;margin:6px 0;padding:6px 12px 6px 44px;position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+ol.flow li::before{content:counter(s);position:absolute;left:12px;top:6px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-size:12px;text-align:center;line-height:22px;font-weight:700}
+@media(max-width:800px){.wrap{grid-template-columns:1fr}nav{position:static}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <b>目次</b>
+  <a href="#overview">1. 概要</a><a href="#arch">2. 全体構成</a><a href="#modules">3. サーバーの構成</a><a href="#apps">4. アプリの約束</a><a href="#front">5. 画面の構成</a>
+  <a href="#data">6. データとファイル</a><a href="#config">7. 設定リファレンス</a><a href="#preset">8. プリセット</a><a href="#api">9. API</a>
+  <a href="#flows">10. 主な処理の流れ</a><a href="#threads">11. 並行処理と状態</a><a href="#security">12. 安全面</a>
+  <a href="#howto">13. 拡張のしかた</a><a href="#test">14. テストと変更の管理</a><a href="#review">15. 設計レビュー</a><a href="#glossary">16. 用語</a>
+</nav>
+<main>
+<h1>GPU Patchbay Home AI 仕様書</h1>
+<p class="sub">対象: <code>patchbay/</code>(サーバー、Python 40ファイル・2,407行)/ <code>web/</code>(画面、HTML 1 + CSS 9 + JavaScript 14 ファイル)/ <code>tests/</code>(169件)・日本語版</p>
+
+<h2 id="overview">1. 概要</h2>
+<p>ローカルで動かす AI のソフト(<b>サービス</b>)を、ブラウザから起動・停止・切り替えするダッシュボード。GPU を取り合うサービスは、<b>排他グループ</b>に入れて、同時に動かさない。ソフトのインストールは利用者が済ませておく前提で、ハブは「起動と管理」だけを担当する。</p>
+<table>
+<tr><th>設計の方針</th><td>① 依存なし(Python 標準ライブラリだけ・画面もビルド不要) ② 設定はファイル(JSON)で、手でも書ける ③ ハブはファイルを消さない(コマンドを見せるだけ) ④ <b>アプリごとの違いは、アプリのフォルダに閉じ込める</b>(共通の仕組みは、アプリの中身を知らない) ⑤ 状態の保存は最小限(ほとんどメモリ上)</td></tr>
+<tr><th>動作環境</th><td>Linux(<code>/proc</code>、<code>ss</code>、<code>nvidia-smi</code> を使用)/ Python 3(動作確認は 3.14)</td></tr>
+<tr><th>起動と停止</th><td><code>./start.sh</code>(バックグラウンドで起動し、URL と PID を表示。PID は <code>state_dir/hub.pid</code>、ログは <code>state_dir/hub.log</code>)/ <code>./stop.sh</code>(ハブにだけ SIGTERM、10 秒待って SIGKILL。サービスは、別のセッションなので、止まらない)。設定の誤りやポートの使用中は、起動前に理由を表示する。PID ファイルは、<code>/proc/&lt;pid&gt;/cmdline</code> に <code>hub.py</code> が含まれるときだけ信用する(別のプロセスを止めない)。<code>--foreground</code> は、前面での起動、<code>--status</code> は状態の確認</td></tr>
+<tr><th>自動起動(オプション)</th><td><code>./start.sh --install-service</code> で、systemd のユーザーサービス(<code>ExecStart=python3 hub.py</code>、<code>Restart=on-failure</code>、<code>KillMode=process</code>)に登録。登録後は、<code>start.sh</code> / <code>stop.sh</code> が、サービスを対象にする(<code>systemctl --user</code> と同じ)</td></tr>
+<tr><th>エントリポイント</th><td><code>python3 hub.py</code> または <code>python3 -m patchbay</code>(同じ。<code>hub.py</code> は、薄い入口)。<code>hub.py --info</code> は、スクリプト用に、設定(状態の置き場・host・port・認証の有無)を表示する</td></tr>
+</table>
+
+<h2 id="arch">2. 全体構成</h2>
+<div class="svgbox">
+<svg viewBox="0 0 960 400" width="100%" role="img" aria-label="全体構成図">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--mute)"/></marker></defs>
+<rect class="b acc" x="14" y="150" width="150" height="100" rx="10"/><text x="89" y="182" text-anchor="middle" font-weight="700">ブラウザ</text><text class="m" x="89" y="204" text-anchor="middle">web/ (HTML・CSS・JS)</text><text class="m" x="89" y="222" text-anchor="middle">テーマは CSS を置くだけ</text>
+<rect class="b" x="220" y="14" width="520" height="372" rx="12"/><text x="480" y="38" text-anchor="middle" font-weight="700">patchbay/(1プロセス・複数スレッド)</text>
+<rect class="b okb" x="240" y="52" width="480" height="40" rx="6"/><text x="480" y="77" text-anchor="middle">api/ — ルート表・認証・静的ファイル・全体状態</text>
+<rect class="b" x="240" y="106" width="150" height="86" rx="6"/><text x="315" y="130" text-anchor="middle" font-weight="700">core/</text><text class="m" x="315" y="150" text-anchor="middle">起動の流れ・プロセス</text><text class="m" x="315" y="167" text-anchor="middle">プリセット・秘密情報</text><text class="m" x="315" y="184" text-anchor="middle">設定・保存</text>
+<rect class="b" x="402" y="106" width="150" height="86" rx="6"/><text x="477" y="130" text-anchor="middle" font-weight="700">downloads/</text><text class="m" x="477" y="150" text-anchor="middle">キュー・再開</text><text class="m" x="477" y="167" text-anchor="middle">HF の解析</text><text class="m" x="477" y="184" text-anchor="middle">安全確認</text>
+<rect class="b" x="564" y="106" width="156" height="86" rx="6"/><text x="642" y="130" text-anchor="middle" font-weight="700">monitor/</text><text class="m" x="642" y="150" text-anchor="middle">CPU・メモリ・GPU・SSD</text><text class="m" x="642" y="167" text-anchor="middle">5秒ごとに記録</text><text class="m" x="642" y="184" text-anchor="middle">(メモリ上のみ)</text>
+<rect class="b wb" x="240" y="226" width="480" height="146" rx="8"/><text x="480" y="248" text-anchor="middle" font-weight="700">apps/ — アプリごとの知識(プラグイン)</text>
+<rect class="b" x="256" y="262" width="104" height="44" rx="6"/><text x="308" y="289" text-anchor="middle">llama</text>
+<rect class="b" x="368" y="262" width="104" height="44" rx="6"/><text x="420" y="289" text-anchor="middle">strata</text>
+<rect class="b" x="480" y="262" width="104" height="44" rx="6"/><text x="532" y="289" text-anchor="middle">comfyui</text>
+<rect class="b" x="592" y="262" width="112" height="44" rx="6"/><text x="648" y="289" text-anchor="middle">forge</text>
+<rect class="b" x="256" y="318" width="448" height="42" rx="6"/><text x="480" y="343" text-anchor="middle">_common(種別・モデルセット・ランチャー)/ base(アプリの約束)</text>
+<rect class="b" x="790" y="14" width="156" height="90" rx="10"/><text x="868" y="40" text-anchor="middle" font-weight="700">各サービス</text><text class="m" x="868" y="60" text-anchor="middle">llama-server / Strata</text><text class="m" x="868" y="78" text-anchor="middle">ComfyUI / Forge</text>
+<rect class="b" x="790" y="126" width="156" height="120" rx="10"/><text x="868" y="152" text-anchor="middle" font-weight="700">ファイル</text><text class="m" x="868" y="172" text-anchor="middle">machine / presets / sets</text><text class="m" x="868" y="190" text-anchor="middle">secrets・ログ・running</text><text class="m" x="868" y="208" text-anchor="middle">モデル置き場</text><text class="m" x="868" y="226" text-anchor="middle">表示用フォルダ</text>
+<rect class="b" x="790" y="268" width="156" height="118" rx="10"/><text x="868" y="294" text-anchor="middle" font-weight="700">OS・外部</text><text class="m" x="868" y="314" text-anchor="middle">/proc・nvidia-smi・ss</text><text class="m" x="868" y="332" text-anchor="middle">git・Hugging Face</text><text class="m" x="868" y="350" text-anchor="middle">Civitai</text>
+<path class="a" d="M164 190 L220 190"/><path class="a" d="M220 214 L164 214"/><text class="m" x="192" y="182" text-anchor="middle">REST</text>
+<path class="a" d="M720 70 L790 56"/><path class="a" d="M720 180 L790 184"/><path class="a" d="M720 310 L790 320"/>
+</svg>
+</div>
+<p class="sub">画面は、2秒ごとに <code>/api/state</code> を読み、モニターは5秒ごとに <code>/api/monitor</code> を読む(新しい点だけ)。サービスの稼働は、ハブが記録した PID と、ポートへの接続の両方で判定する。</p>
+
+<h2 id="modules">3. サーバーの構成(<code>patchbay/</code>)</h2>
+<h3>パッケージの依存</h3>
+<div class="svgbox">
+<svg viewBox="0 0 900 330" width="100%" role="img" aria-label="パッケージの依存図">
+<rect class="b okb" x="330" y="10" width="240" height="38" rx="6"/><text x="450" y="34" text-anchor="middle" font-weight="700">server / api(入口)</text>
+<path class="a" d="M450 48 V72"/><path d="M110 72 H790" class="a" style="marker-end:none"/>
+<path class="a" d="M110 72 V100"/><path class="a" d="M330 72 V100"/><path class="a" d="M560 72 V100"/><path class="a" d="M790 72 V100"/>
+<rect class="b" x="30" y="102" width="160" height="50" rx="6"/><text x="110" y="124" text-anchor="middle" font-weight="700">core(上位)</text><text class="m" x="110" y="141" text-anchor="middle">lifecycle・process・services</text>
+<rect class="b" x="250" y="102" width="160" height="50" rx="6"/><text x="330" y="124" text-anchor="middle" font-weight="700">downloads</text><text class="m" x="330" y="141" text-anchor="middle">engine・hf・rules・safety</text>
+<rect class="b" x="480" y="102" width="160" height="50" rx="6"/><text x="560" y="124" text-anchor="middle" font-weight="700">monitor</text><text class="m" x="560" y="141" text-anchor="middle">sampler・system</text>
+<rect class="b wb" x="700" y="102" width="170" height="50" rx="6"/><text x="785" y="124" text-anchor="middle" font-weight="700">apps(プラグイン)</text><text class="m" x="785" y="141" text-anchor="middle">llama・strata・comfyui・forge</text>
+<path class="lz" d="M70 152 V190 H760 V154"/><text class="m" x="415" y="207" text-anchor="middle">遅延 import(core・downloads・monitor は、使うときに、アプリの登録簿 apps/__init__.py を参照する)</text>
+<path class="a" d="M830 152 V232"/><path class="a" d="M330 152 V232"/><path class="a" d="M560 152 V232"/><path class="a" d="M150 152 V232"/>
+<rect class="b acc" x="30" y="234" width="840" height="64" rx="8"/><text x="450" y="258" text-anchor="middle" font-weight="700">core(基礎): config(設定・パス展開)/ store(JSON 保存)/ errors / secrets / presets</text><text class="m" x="450" y="278" text-anchor="middle">apps → downloads(rules・safety)も、読み込み時の依存。下向きの実線は、すべて、読み込み時(トップレベル)の import</text>
+</svg>
+</div>
+<p class="sub">読み込み時の import は、一方向(<code>api → apps / core / downloads / monitor</code>、<code>apps → core / downloads</code>、<code>downloads・monitor → core</code>)。逆向き(<code>core・downloads・monitor → apps</code>)は、関数の中で、使うときに読み込む(遅延 import)ことで、循環を避けている。これは、「アプリの登録簿を、呼び出し側が参照する」というプラグインの仕組み。</p>
+
+<h3>ファイルの責務</h3>
+<table>
+<tr><th>場所</th><th>行</th><th>責務</th></tr>
+<tr><td><code>server.py</code></td><td>42</td><td>起動。<code>setup()</code> が、設定の読込・フォルダの作成・実行状態の復元・スレッドの起動を行う(import しただけでは、何も動かない)</td></tr>
+<tr><td><code>core/config.py</code></td><td>130</td><td>設定(<code>CFG</code>)の読込、置き場所(<code>ROOTS</code>)、変数の展開(<code>expand</code> / <code>to_path</code>)、サービスのモデル置き場・種別フォルダ</td></tr>
+<tr><td><code>core/store.py</code></td><td>19</td><td>JSON のアトミックな保存、ファイルロック</td></tr>
+<tr><td><code>core/secrets.py</code></td><td>98</td><td>サービスのAPIキー、HF / Civitai のトークン(<code>secrets.json</code>、権限600)</td></tr>
+<tr><td><code>core/presets.py</code></td><td>61</td><td>プリセットの保存。受け付ける項目は、共通の項目 + 各アプリの宣言</td></tr>
+<tr><td><code>core/process.py</code></td><td>185</td><td>起動したプロセスの記録・状態判定・停止・排他の操作の直列化(<b>仕組みだけ</b>)</td></tr>
+<tr><td><code>core/lifecycle.py</code></td><td>38</td><td>起動の流れ: 検証 → 排他 → アプリの準備 → 起動 → 記録</td></tr>
+<tr><td><code>core/services.py</code></td><td>94</td><td>導入の判定・自動検出・サービス設定の保存・パスの確認</td></tr>
+<tr><td><code>apps/base.py</code></td><td>155</td><td>アプリの約束(<code>App</code>)と、スクリプト系の既定(<code>ScriptApp</code>)</td></tr>
+<tr><td><code>apps/llama/</code></td><td>app 87 / models 45 / stats 46 / flags 22</td><td>llama.cpp: 引数の組み立て・GGUF の一覧・<code>/metrics</code>・チェックボックスのフラグ</td></tr>
+<tr><td><code>apps/strata/</code></td><td>10</td><td>Strata(スクリプト + APIキー。モデルは、フォルダ直下の項目)</td></tr>
+<tr><td><code>apps/comfyui/</code></td><td>29</td><td>ComfyUI: <code>extra_model_paths.yaml</code> の書き換え</td></tr>
+<tr><td><code>apps/forge/</code></td><td>56</td><td>Forge: 前回選んだ VAE / TE を、セットの範囲に整理</td></tr>
+<tr><td><code>apps/_common/</code></td><td>sets 144 / image 79 / image_models 71 / launcher 66 / categories 62 ほか</td><td>ComfyUI と Forge の共通(種別・共有リンク・モデルセット)、webui 系のランチャー、フォルダ直下の項目の一覧</td></tr>
+<tr><td><code>downloads/</code></td><td>engine 173 / hf 42 / rules 41 / safety 16</td><td>ダウンロードの仕組み(キュー・再開・URL の解析)。アプリごとのルールは <code>rules.py</code> の形で、アプリから受け取る</td></tr>
+<tr><td><code>monitor/</code></td><td>sampler 107 / system 91</td><td>サンプラー(名前付きのサンプル)と、<code>/proc</code>・<code>nvidia-smi</code> の読み取り</td></tr>
+<tr><td><code>api/</code></td><td>handler 61 / routes 73 / state 51 / static 55</td><td>HTTP(認証・ルート表の呼び出し)、ルート表、<code>/api/state</code> の組み立て、画面とテーマの配信</td></tr>
+</table>
+
+<h2 id="apps">4. アプリの約束(<code>apps/base.py</code>)</h2>
+<p>アプリごとの違いは、<code>App</code> の派生クラス(<code>apps/&lt;名前&gt;/app.py</code>)に書く。<code>core</code>・<code>downloads</code>・<code>monitor</code>・<code>api</code> は、アプリの中身を知らず、次のメソッドだけを呼ぶ。</p>
+<table>
+<tr><th>役割</th><th>メソッド</th><th>llama</th><th>strata</th><th>comfyui</th><th>forge</th></tr>
+<tr><td>導入の目印</td><td><code>marker / installed</code></td><td>実行ファイル</td><td>serve/server.py</td><td>main.py</td><td>launch.py</td></tr>
+<tr><td>起動コマンド</td><td><code>build_command / validate</code></td><td>引数を組み立てる</td><td>スクリプト + APIキー</td><td>ランチャー / スクリプト</td><td>ランチャー / スクリプト</td></tr>
+<tr><td>起動前の準備</td><td><code>prepare → Prepared</code></td><td>—</td><td>—</td><td>表示用フォルダ + yaml</td><td>表示用フォルダ + dir_args + 前回選択の整理</td></tr>
+<tr><td>停止後の後始末</td><td><code>after_stop</code></td><td>—</td><td>—</td><td>yaml を「全部見える」へ</td><td>—(表示用フォルダは残る)</td></tr>
+<tr><td>モデルの一覧</td><td><code>models</code></td><td>GGUF(分割・mmproj)</td><td>項目 + 参照</td><td>種別 + セット + リンク</td><td>種別 + セット + リンク</td></tr>
+<tr><td>ダウンロード</td><td><code>download_rules</code></td><td>フォルダ</td><td>フォルダ</td><td>種別に振り分け</td><td>種別に振り分け</td></tr>
+<tr><td>固有の指標</td><td><code>stats</code></td><td><code>/metrics</code></td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>バージョン</td><td><code>version</code></td><td>バイナリの <code>--version</code></td><td colspan="3">git(タグ + 日付)</td></tr>
+<tr><td>プリセットの項目</td><td><code>preset_fields</code></td><td>model ctx reasoning … flags</td><td>cmd args</td><td>cmd args model_set</td><td>cmd args model_set</td></tr>
+</table>
+<p>どのアプリの知識で動くかは、<code>services.&lt;名前&gt;.app</code>(<code>llama / strata / comfyui / forge / script</code>)。省略時は、名前から(<code>llama / strata / comfy / forge</code>)、それでも決まらなければ <code>type</code> から決まる。</p>
+
+<h2 id="front">5. 画面の構成(<code>web/</code>)</h2>
+<p>HTML・CSS・JavaScript は、ビルドや外部ライブラリを使わない。JavaScript は <b>ES モジュール</b>(<code>&lt;script type="module" src="/js/main.js"&gt;</code> の1本だけ)で、各ファイルが、使うものを <code>import</code>、外に見せるものを <code>export</code> で明示する。グローバル変数は使わない。描画は、HTML の文字列を <code>innerHTML</code> に入れる方式で、ボタンは <code>data-a</code> 属性と、親要素でのイベント委譲で処理する(HTML の <code>onclick="…"</code> は使わない)。</p>
+<h3>依存の向き(一方向。循環しない)</h3>
+<p><code>main</code> → <code>theme</code> / <code>models</code> / <code>downloads</code> / <code>monitor</code> / <code>dashboard</code> → <code>script-panel</code> / <code>llama-panel</code> → <code>dialogs</code> → <code>core</code> → <code>state</code>。上のファイルが下を import するだけで、下から上は import しない。どうしても下から上を呼びたいもの(「状態を再取得する」「サービスタブを描き直す」)は、<code>state.js</code> の <code>hooks</code> に、<code>main.js</code> が起動時に関数を入れる。</p>
+<table>
+<tr><th>ファイル</th><th>責務</th><th>主な export</th></tr>
+<tr><td><code>js/state.js</code></td><td>共有の状態(<code>state</code>)と、状態の読み取り(<code>SV</code> <code>LL</code> <code>presetsOf</code> <code>base</code>)、循環を避ける接続口(<code>hooks</code>)。何も import しない</td><td><code>state</code> <code>hooks</code> …</td></tr>
+<tr><td><code>js/core.js</code></td><td>道具(<code>$</code> <code>esc</code> <code>api</code> <code>act</code> <code>gb</code> <code>mb</code>)</td><td><code>$</code> <code>esc</code> <code>api</code> <code>act</code></td></tr>
+<tr><td><code>js/charts.js</code></td><td>グラフの描画(折れ線・タイルの推移・ゲージ・ホバー)</td><td><code>drawChart</code> <code>drawSpark</code> <code>drawGauge</code> …</td></tr>
+<tr><td><code>js/dialogs.js</code></td><td>モーダルの開閉・ログの表示・APIキーの登録・パスの確認表示(<code>pathHint</code>)</td><td><code>modal</code> <code>showLog</code> <code>keyDialog</code> <code>pathHint</code></td></tr>
+<tr><td><code>js/llama-panel.js</code></td><td>llama.cpp のモデルを選んだときの右のパネル(お気に入り・パラメータ・フラグ)</td><td><code>PANEL</code> <code>selectModel</code> <code>drawPanel</code></td></tr>
+<tr><td><code>js/script-panel.js</code></td><td>スクリプト / ランチャー系サービスの右のパネルと、サービスの設定(⚙)</td><td><code>drawSPanel</code> <code>svcDialog</code></td></tr>
+<tr><td><code>js/dashboard.js</code></td><td>サービスタブ: サービスのカード・llama.cpp のモデルタイル・未導入のサービス・クリックの振り分け</td><td><code>renderDash</code></td></tr>
+<tr><td><code>js/models.js</code></td><td>モデルタブ・モデルセットの編集・削除コマンド</td><td><code>loadModels</code> <code>loadModelsTab</code></td></tr>
+<tr><td><code>js/downloads.js</code></td><td>ダウンロードタブ・トークン</td><td><code>renderDl</code></td></tr>
+<tr><td><code>js/monitor-parts.js</code></td><td>モニターのタイルの部品(アイコン・枠・数字の書き込み・整形)</td><td><code>tile</code> <code>tileHtml</code> <code>ico</code> <code>f0</code> <code>f1</code></td></tr>
+<tr><td><code>js/monitor-llm.js</code></td><td>「LLM 使用状況」(llama.cpp の指標。動いているときだけ)</td><td><code>llmDraw</code></td></tr>
+<tr><td><code>js/monitor.js</code></td><td>モニタータブ(構成・取得・PC の情報・使用状況・詳細グラフ)</td><td><code>monStart</code> <code>monStop</code> <code>monStatus</code> <code>redrawMonitor</code></td></tr>
+<tr><td><code>js/theme.js</code></td><td>テーマの切り替え(一覧は <code>/themes.json</code>)</td><td>—</td></tr>
+<tr><td><code>js/main.js</code></td><td>入口。画面全体の更新(2秒ごとの状態の取得)・タブの切り替え。<code>hooks</code> を接続する</td><td>—</td></tr>
+<tr><td>—</td><td><code>css/base.css</code></td><td>部品のスタイル。色は、すべて CSS 変数(<code>--bg --panel --acc</code> …)</td></tr>
+<tr><td>—</td><td><code>css/themes/*.css</code></td><td>1ファイル=1テーマ。<code>/css/themes.css</code> として、サーバーが、全部つなげて配る</td></tr>
+</table>
+<table>
+<tr><th>テーマ</th><td><code>&lt;html data-theme="…"&gt;</code> と CSS 変数で切り替え。選択は <code>localStorage</code>。グラフの色も、CSS 変数から、描画のたびに読み直す。<b>テーマを足すには</b>、<code>web/css/themes/&lt;id&gt;.css</code> を置くだけ(先頭に <code>/* name: 名前 | swatch: 色 色 色 | order: 番号 */</code> を書くと、メニューに出る)</td></tr>
+<tr><th>更新の周期</th><td><code>/api/state</code> は2秒ごと、<code>/api/monitor</code> は、モニターのタブを開いている間だけ5秒ごと(<code>since</code> 以降の新しい点のみ)</td></tr>
+</table>
+
+<h2 id="data">6. データとファイル</h2>
+<table>
+<tr><th>ファイル</th><th>場所</th><th>書く人</th><th>内容</th></tr>
+<tr><td><code>machine.json</code></td><td>ハブのフォルダ</td><td>利用者 / 画面の⚙ / 初回の雛形コピー</td><td>このPC固有の設定。画面から保存すると、1つ前の版を <code>machine.json.bak</code> に残す</td></tr>
+<tr><td><code>presets.json</code></td><td>ハブのフォルダ</td><td>画面 / 利用者</td><td>プリセットの配列</td></tr>
+<tr><td><code>sets.json</code></td><td>ハブのフォルダ</td><td>画面 / ダウンロード完了時</td><td><code>{ "common": {サービス:{種別:[パス]}}, "sets": [ {id,name,note,service,files} ] }</code></td></tr>
+<tr><td><code>secrets.json</code></td><td><code>state_dir</code>(権限 600)</td><td>画面</td><td>サービスのAPIキー(キー名=サービス名)と、トークン(<code>@hf</code> <code>@civitai</code>)</td></tr>
+<tr><td><code>running.json</code></td><td><code>state_dir</code></td><td>ハブ</td><td>ハブが起動したサービスの PID・プリセット・起動時刻(再起動後に復元)</td></tr>
+<tr><td><code>&lt;サービス&gt;.log</code></td><td><code>state_dir</code></td><td>ハブ(起動のたびに作り直し)</td><td>先頭に、準備の記録とコマンド、続いて、サービスの出力</td></tr>
+<tr><td>表示用フォルダ</td><td><code>{models_root}/.view/&lt;サービス&gt;/</code></td><td>ハブ</td><td>モデルセットのファイルへのシンボリックリンクだけ(実ファイルは置かない)</td></tr>
+</table>
+<p>ハブが、<b>外部のソフトの設定を書き換える</b>のは、次の2か所だけ(どちらも、初回に <code>.bak-patchbay</code> を残す)。</p>
+<table>
+<tr><td>ComfyUI の <code>extra_model_paths.yaml</code></td><td>起動時に、モデルセットに合わせて書き換える。停止時に「すべて表示」に戻す(<code>apps/comfyui</code>)</td></tr>
+<tr><td>Forge の <code>config.json</code></td><td>セット指定の起動時に、<code>forge_additional_modules</code>(前回の VAE / TE)を、セットの範囲に整理(<code>apps/forge</code>)</td></tr>
+</table>
+<h3>モニターのサンプル(名前付き)</h3>
+<pre>{ "t": 1792291300.2,                    // 時刻(秒)
+  "cpu": 1.5, "mem": 2.9, "swap": 0.5,   // % / GB / GB
+  "disk_read": 0.0, "disk_write": 0.1, "disk_used": 718.3,   // MB/s / MB/s / GB
+  "gpus": [ {"util": 0, "vram": 36, "temp": 41, "power": 11.3}, … ],   // % / MB / ℃ / W(GPU 1枚につき1要素)
+  "apps": { "llama": { "metrics": true, "prompt_tokens": 27, "gen_tokens": 14, "cached_tokens": 0,
+                       "prompt_seconds": 0.03, "gen_seconds": 0.07, "processing": 0, "deferred": 0,
+                       "ctx_peak": 40, "n_ctx": 8192 } } }   // 動いているアプリの固有の指標(動いていなければ、キーなし。metrics:false=--metrics なし)</pre>
+
+<h2 id="config">7. 設定リファレンス(<code>machine.json</code>)</h2>
+<h3>トップレベル</h3>
+<table>
+<tr><th>キー</th><th>既定</th><th>説明</th></tr>
+<tr><td><code>host</code> / <code>port</code></td><td><code>127.0.0.1</code> / <code>5000</code></td><td>ハブの待ち受け。LAN に公開するときは <code>0.0.0.0</code> にして、<code>token</code> を設定する</td></tr>
+<tr><td><code>token</code></td><td>空</td><td>空なら認証なし(<b>認証は任意の機能で、空のままでも起動する</b>)。設定すると、すべての <code>/api/*</code> に <code>X-Token</code> ヘッダが必要。半角の英数字・記号だけ(1〜200 文字)</td></tr>
+<tr><td><code>allowed_hosts</code></td><td>空</td><td>画面を開くときに使ってよい名前(ホスト名)の追加。<b>初めから許可</b>: IP アドレス・<code>localhost</code>・このPCのホスト名(と <code>&lt;ホスト名&gt;.local</code>)。それ以外の名前(自分で決めた名前・DNS・リバースプロキシのドメイン)で開くときだけ、書く(ポート番号は書かない)。書き換えたら再起動。§12 を参照</td></tr>
+<tr><td><code>allow_private_downloads</code></td><td><code>false</code></td><td><code>true</code> にすると、ダウンロードで、内部のアドレス(このPC・LAN・リンクローカル)へ接続できる。NAS など、LAN 内から取りたいときだけ</td></tr>
+<tr><td><code>root</code></td><td><code>{home}</code></td><td>置き場所の親フォルダ(近道)</td></tr>
+<tr><td><code>apps_root</code> / <code>models_root</code></td><td><code>{root}/ai-apps</code> / <code>{root}/ai-models</code></td><td>ソフトの置き場 / モデルの置き場</td></tr>
+<tr><td><code>state_dir</code></td><td><code>{home}/.local/state/gpu-patchbay-home-ai</code></td><td>ログ・実行状態・秘密情報の置き場</td></tr>
+<tr><td><code>monitor</code></td><td><code>{interval_sec:5, history_hours:3}</code></td><td>モニターの記録間隔と保持時間</td></tr>
+<tr><td><code>hf_token</code> / <code>civitai_token</code></td><td>(なし)</td><td>旧方式。画面で登録した値が優先される</td></tr>
+</table>
+<p>変数: <code>{home}</code> <code>{root}</code> <code>{apps_root}</code> <code>{models_root}</code>(プリセットの <code>extra</code> では、さらに <code>{models_dir}</code>=そのサービスのモデル置き場)。<code>~</code> も使える。優先順位は、サービスごとの指定 &gt; <code>apps_root</code> / <code>models_root</code> &gt; <code>root</code>。環境変数 <code>PATCHBAY_MACHINE</code> で、別の設定ファイルを指定できる(テスト用)。</p>
+<h3>サービス(<code>services.&lt;名前&gt;</code>)</h3>
+<table>
+<tr><th>キー</th><th>型</th><th>説明</th></tr>
+<tr><td><code>label</code> <code>type</code> <code>app</code></td><td>文字列</td><td>表示名 / <code>llama</code> か <code>script</code> / どのアプリの知識で動くか(§4)</td></tr>
+<tr><td><code>group</code></td><td>文字列</td><td>排他グループ。同じ値のサービスは、1つ起動すると、ほかが止まる</td></tr>
+<tr><td><code>port</code></td><td>数値</td><td>状態の判定に使う。<code>llama</code> とランチャーでは、ハブが起動時に、このポートを指定する(<code>{port}</code>)</td></tr>
+<tr><td><code>dir</code> <code>marker</code></td><td>パス / 文字列</td><td>インストール場所と、そこにあるはずの目印のファイル(導入の判定)</td></tr>
+<tr><td><code>bin</code> <code>base_args</code> <code>metrics</code> <code>flags</code></td><td>llama のみ</td><td>実行ファイルの相対パス / 常に付ける引数 / <code>--metrics</code> の自動付与(既定 true)/ チェックボックスのフラグ一覧の差し替え</td></tr>
+<tr><td><code>launcher</code></td><td>オブジェクト</td><td>webui 系を、<code>webui.sh</code> を通さず、venv の python で直接起動する。<code>venv script args</code>(<code>{port}</code> 可)<code>python python_versions env auto_venv</code></td></tr>
+<tr><td><code>scan</code></td><td>glob</td><td>サービスのフォルダ内で、未登録の起動スクリプトを探す(例: <code>run-*.sh</code>)</td></tr>
+<tr><td><code>api_key</code></td><td>オブジェクト</td><td><code>{env, import_file?}</code>。起動時に、環境変数でAPIキーを渡す</td></tr>
+<tr><td><code>models_dir</code> <code>exts</code></td><td>パス / 配列</td><td>モデル置き場と、許可する拡張子</td></tr>
+<tr><td><code>categories</code></td><td>配列</td><td>種別フォルダの定義(ComfyUI / Forge)。<code>key label hint roles link</code></td></tr>
+<tr><td><code>view</code></td><td>オブジェクト</td><td>モデルセット対応。<code>dir</code>(表示用フォルダ)<code>yaml</code>(ComfyUI)<code>saved_modules</code>(Forge)<code>env</code>(任意)</td></tr>
+<tr><td><code>dir_args</code></td><td>配列</td><td>ランチャーに渡す、モデル置き場の引数(<code>[フラグ, 種別]</code>)</td></tr>
+<tr><td><code>refs_glob</code> <code>detect_names</code> <code>homepage</code> <code>enabled</code></td><td>—</td><td>設定ファイルからの参照の検出 / 自動検出で探すフォルダ名 / インストール手順のリンク / 使う(既定 true)</td></tr>
+</table>
+
+<h2 id="preset">8. プリセット(<code>presets.json</code>)</h2>
+<p>1つのプリセット=「サービス + 起動するときの設定」。項目は、全サービス共通の項目に、各アプリが宣言した項目(<code>preset_fields</code>)を足したもの。</p>
+<table>
+<tr><th>項目</th><th>宣言した場所</th><th>説明</th></tr>
+<tr><td><code>id name service note favorite</code></td><td><code>core/presets.py</code></td><td>識別子・名前・サービス・メモ・お気に入り(llama はモデルごとに1つだけ。そのモデルの既定)</td></tr>
+<tr><td><code>model ctx reasoning temp top_p top_k min_p ngl server_dir extra flags</code></td><td><code>apps/llama</code></td><td>モデル / コンテキスト長 / reasoning(auto・off・-1・数値)/ サンプリング / GPU層数 / 別ビルドのフォルダ / 追加フラグ(空白区切り)/ チェックボックスのフラグ(一覧にあるものだけ)</td></tr>
+<tr><td><code>cmd args</code></td><td><code>ScriptApp</code></td><td>起動スクリプト(相対パスは、サービスのフォルダから)と引数。ランチャーのサービスでは省略する</td></tr>
+<tr><td><code>model_set</code></td><td><code>ImageApp</code></td><td>起動するモデルセットの id(省略=すべて表示)</td></tr>
+</table>
+
+<h2 id="api">9. API</h2>
+<p>すべて JSON。<code>token</code> が設定されていれば、<code>/api/*</code> に <code>X-Token</code> ヘッダが必要(画面の部品 <code>/</code> <code>/css/*</code> <code>/js/*</code> <code>/themes.json</code> は不要)。POST は <code>Content-Type: application/json</code> が必須で、本文は JSON のオブジェクト。エラーは <code>{"error": "…"}</code> と、HTTP 400(入力の検証エラー)/ 401 / 403(Host・Origin の拒否)/ 404 / 415(JSON 以外の POST)/ 500。ルート表は <code>api/routes.py</code>。</p>
+<table>
+<tr><th>メソッド・パス</th><th>入力</th><th>説明</th></tr>
+<tr><td>GET <code>/api/state</code></td><td>—</td><td>全体の状態: <code>services</code> <code>presets</code> <code>ops</code> <code>downloads</code> <code>sets</code> <code>tokens</code> <code>models_root</code></td></tr>
+<tr><td>GET <code>/api/monitor</code></td><td><code>since</code></td><td><code>meta</code> と、<code>since</code> より新しいサンプル(§6 の形式)</td></tr>
+<tr><td>GET <code>/api/models</code></td><td><code>service</code></td><td>モデル一覧(アプリの <code>models()</code>)。<code>kind</code>: <code>llama</code> / <code>categories</code> / <code>entries</code></td></tr>
+<tr><td>GET <code>/api/resolve</code></td><td><code>service path [dir=1]</code></td><td>パスの解決と存在確認(<code>dir=1</code> で、目印のファイルまで)</td></tr>
+<tr><td>GET <code>/api/log</code></td><td><code>service</code></td><td>ログの末尾 200 行</td></tr>
+<tr><td>POST <code>/api/start</code></td><td><code>preset</code> / <code>params label</code></td><td>起動(非同期)。<code>params</code> は、保存せずに、その設定で起動</td></tr>
+<tr><td>POST <code>/api/stop</code></td><td><code>service</code></td><td>停止(非同期)</td></tr>
+<tr><td>POST <code>/api/preset</code> / <code>…/delete</code></td><td>プリセット / <code>id</code></td><td>保存(id がなければ新規)/ 削除</td></tr>
+<tr><td>POST <code>/api/set</code> / <code>…/delete</code> / <code>…/common</code></td><td>セット / <code>id</code> / <code>service files</code></td><td>モデルセットの保存・削除、共通セットの保存</td></tr>
+<tr><td>POST <code>/api/service/config</code></td><td><code>service</code> + <code>dir port models_dir enabled</code></td><td>サービスの設定を <code>machine.json</code> に保存(起動中は不可)</td></tr>
+<tr><td>POST <code>/api/secret</code></td><td><code>service</code> + <code>key</code> / <code>generate</code> / <code>import</code> / <code>clear</code></td><td>APIキーの登録(キーを返すのは、生成した直後の1回だけ)</td></tr>
+<tr><td>POST <code>/api/token</code></td><td><code>kind</code> + <code>token</code> / <code>clear</code></td><td>HF / Civitai のトークン(HF は、有効かどうかを確認してから保存)</td></tr>
+<tr><td>POST <code>/api/dl/inspect</code></td><td><code>url service</code></td><td>URL を解析して、ファイルの一覧と推定した種別を返す</td></tr>
+<tr><td>POST <code>/api/dl/start</code></td><td><code>service files[] folder link set_id new_set repo rev url</code></td><td>ダウンロードのキューに追加</td></tr>
+<tr><td>POST <code>/api/dl/cancel</code> / <code>…/clear</code></td><td><code>id</code> / —</td><td>中止 / 完了分を消す</td></tr>
+</table>
+
+<h2 id="flows">10. 主な処理の流れ</h2>
+<h3>10.1 サービスの起動(<code>POST /api/start</code> → <code>core/lifecycle.py</code>)</h3>
+<ol class="flow">
+<li><b>検証(同期)</b>: プリセットを取得 → 「使う」か確認 → <code>app.build_command</code> でコマンドを組み立てる(モデルやスクリプトの存在も確認)→ <code>app.validate</code>。失敗すると、すぐ HTTP 400。</li>
+<li><b>操作スレッドを開始</b>(同時に1つだけ。実行中なら「別の操作を実行中です」)。画面には <code>ops</code> の <code>busy</code> と <code>msg</code> で進捗を出す。</li>
+<li><b>排他</b>(<code>stop_group_of</code>): 同じグループのサービス(と自分自身)を停止(SIGTERM → 最大30秒待つ → SIGKILL)。</li>
+<li><b>準備</b>(<code>app.prepare</code>): ComfyUI / Forge は、モデルセットの表示用フォルダを作り直し(ComfyUI は yaml、Forge は前回選択の整理と <code>dir_args</code>)、ランチャーのサービスは、git・Python・venv・TCMalloc を確認する。戻り値の <code>Prepared</code> が、ログの先頭の行と、画面に出すセット名を持つ。</li>
+<li><b>起動</b>(<code>process.spawn</code>): 新しいセッションで <code>Popen</code>(ハブが落ちても、サービスは落ちない)。<code>running.json</code> に記録。</li>
+<li><b>状態の確認</b>: 画面は2秒ごとに <code>/api/state</code>。<code>service_status</code> が、記録した PID の生存と、ポートへの接続から、「起動中…」→「稼働中」を判定する。同じポートを使う別のサービスが動いていても、混同しない。</li>
+</ol>
+<h3>10.2 ダウンロード(<code>downloads/engine.py</code>)</h3>
+<ol class="flow">
+<li><code>inspect</code>: URL が Hugging Face なら、API でファイル一覧を取り、アプリのルールが許す拡張子だけ残す。種別のあるアプリでは、ルールの <code>guess</code> で種別を推定する。</li>
+<li><code>enqueue</code>: ルールの <code>dest</code> が、保存先を決めて、安全確認(<code>safe_dest</code>: モデル置き場の外・許可外の拡張子・既存ファイルを拒否)をする。ルールの <code>job_options</code> が、共有リンクとセットの指定を決める。</li>
+<li>ダウンロード用のスレッド(1つ)が順番に処理。<code>.part</code> に書き、続きから再開できる。空き容量を事前に確認。</li>
+<li>完了すると、<code>.part</code> を本来の名前にして、ルールの <code>on_done</code> が、共有リンクとセットへの追加を行う。</li>
+</ol>
+<h3>10.3 モニター(<code>monitor/sampler.py</code>)</h3>
+<ol class="flow">
+<li><code>Sampler</code> のスレッドが、5秒ごとに、<code>/proc/stat</code>・<code>/proc/meminfo</code>・<code>/proc/diskstats</code>・<code>nvidia-smi</code> を読み、差分から、使用率や速度を計算する。動いているアプリの固有の指標は、各アプリの <code>stats()</code> から集める。</li>
+<li>サンプルを <code>deque</code>(最大 2,160 点=3時間)に追加。<b>ファイルには書かない</b>(ハブの停止でリセット)。</li>
+<li>画面は、モニターのタブを開いている間、<code>since</code> 以降の新しい点だけを取得。モデルの再起動で累計が減ったら、リセットとして扱う。</li>
+</ol>
+
+<h2 id="threads">11. 並行処理と状態</h2>
+<table>
+<tr><th>スレッド</th><th>数</th><th>役割</th></tr>
+<tr><td>HTTP</td><td>リクエストごと</td><td><code>ThreadingHTTPServer</code>。読み書きは、ほとんどロックなしで、モジュールの状態を直接参照する</td></tr>
+<tr><td>操作(起動・停止)</td><td>同時に1つ</td><td><code>op_lock</code> で直列化。<code>OPS</code> に進捗を書く</td></tr>
+<tr><td>ダウンロード</td><td>1</td><td>キューを順番に処理。中止は、フラグで通知</td></tr>
+<tr><td>モニター</td><td>1</td><td>5秒ごとにサンプルを追加</td></tr>
+<tr><td>プロセス待ち</td><td>起動ごと</td><td><code>proc.wait()</code> のみ(ゾンビの回収)</td></tr>
+</table>
+<table>
+<tr><th>状態(場所)</th><th>書く場所</th><th>保護</th></tr>
+<tr><td><code>CFG</code>(<code>core/config.py</code>)</td><td><code>init()</code> / <code>update_service_config</code></td><td>なし(画面から保存すると、その場で書き換わる)。同じ辞書を更新するので、どこからでも参照できる</td></tr>
+<tr><td><code>RUN</code> / <code>OPS</code>(<code>core/process.py</code>)</td><td>起動・停止・状態判定</td><td>操作スレッドの直列化のみ</td></tr>
+<tr><td><code>DL</code>(<code>downloads/engine.py</code>)</td><td>各スレッド</td><td>なし(辞書の単純な更新)</td></tr>
+<tr><td><code>Sampler.samples</code></td><td>モニターのスレッド</td><td>なし(<code>deque</code> への追記)</td></tr>
+<tr><td>presets / sets / secrets のファイル</td><td>HTTP</td><td><code>file_lock</code>(presets・sets)/ 書き込みは権限 600 で作り直し(secrets)</td></tr>
+</table>
+
+<h2 id="security">12. 安全面</h2>
+<table>
+<tr><th>リスク</th><th>現状の対策</th><th>残る点</th></tr>
+<tr><td>任意のコマンドの実行(<code>cmd</code> / <code>extra</code>)</td><td>雛形の初期設定は <code>127.0.0.1</code> のみ。<code>token</code> で API を保護できる</td><td><b>設計の判断</b>: <code>token</code> は、補足的な機能で任意(空でも起動する)。LAN 公開で空のままだと、LAN の誰でも実行できる。信頼できる LAN での利用が前提(README に明記)</td></tr>
+<tr><td>別のサイトからの操作(CSRF)・DNS リバインディング</td><td>ブラウザ経由で、ハブに「起動コマンドを書いたプリセット」を送り込む攻撃への備え。①<code>Host</code> ヘッダが、IP アドレス・<code>localhost</code>・このPCのホスト名・<code>allowed_hosts</code> のどれかでなければ 403(判定は <code>api/handler.py</code> の <code>host_allowed</code>)。②<code>Origin</code> があれば、<code>Host</code> と同じ場所でなければ 403。③POST は <code>application/json</code> だけ(別サイトの <code>&lt;form&gt;</code> や、事前確認なしのリクエストでは送れない形)なので、それ以外は 415</td><td>自分で決めた名前や DNS の名前で開くときは、<code>allowed_hosts</code> に書く(README の「別の端末から使う」)</td></tr>
+<tr><td>入力の型・形(コマンドへの混入)</td><td>すべての API 入力を、ルートごとの型の定義(<code>api/routes.py</code>、部品は <code>core/schema.py</code>)で検証してから処理。文字列は制御文字(改行・NUL)と長さを制限。プリセットの項目は、アプリごとの型(<code>preset_fields</code>)で検証。<code>machine.json</code> は、読み込み時と、⚙ からの保存前に検証し、型の誤りは起動を止め、未知のキーは警告(<code>core/machine_schema.py</code>)。コマンドはシェルを通さず、リストで実行</td><td>設定された <code>cmd</code> を実行するのは、ハブの役目そのもの(認証と上の Host・Origin の確認で守る)</td></tr>
+<tr><td>ダウンロードの URL・宛先(SSRF)</td><td><code>http</code> / <code>https</code> だけ。接続前に名前を引いて、内部のアドレス(loopback・LAN・リンクローカル・IPv4 を含む IPv6)は断る。リダイレクトのたびに、同じ確認をして、https から http への転送も断る。<code>allow_private_downloads</code> で、許可に切り替えできる</td><td>名前の引き直しで、アドレスが変わる攻撃(DNS の再解決)は、完全には防げない</td></tr>
+<tr><td>トークンの送信先</td><td>HF / Civitai のトークンは、正規のドメイン(とそのサブドメイン)への <b>https</b> にだけ付ける(<code>evilhf.co</code> のような似た名前には付けない)。ホストが変わるリダイレクトでは外す</td><td>—</td></tr>
+<tr><td>保存先の上書き・リンク</td><td>同じ保存先のジョブは、重ねて登録できない。完成時も、既存のファイルは上書きしない。<code>.part</code> がリンクなら書き込まない(<code>O_NOFOLLOW</code>)。モデルセットは、リンクを解決した先が、モデル置き場の中のものだけを表示し、表示用フォルダ内のリンクは、辿らずに消す</td><td>—</td></tr>
+<tr><td>リクエストの上限</td><td>本文は 4 MiB まで(超えると 413、負の値は 400)。接続は 30 秒で切る。待機中のダウンロードは 500 件まで。サイズ不明の転送も、空き容量を確認する。ログは、末尾だけを読む</td><td>同時接続数の上限はない(LAN の信頼が前提)</td></tr>
+<tr><td>状態ファイルの同時書き込み</td><td>設定・セット・秘密情報は、読み込みから書き込みまでを、1つのロックで保護。書き込みは、固有名の一時ファイルから置き換え。<code>secrets.json</code> は、毎回 600 で作り直す(フォルダは 700)。<code>RUN</code> の更新もロック。PID の使い回しは、開始時刻(<code>/proc</code>)で見分ける</td><td>ポート経由で見つけた外部のプロセスの停止は、仕様どおり(同一性は確認できない)</td></tr>
+<tr><td>パスの逃げ</td><td>ダウンロードは <code>safe_dest</code>、セットは <code>_clean_files</code> で、モデル置き場の外を拒否。静的ファイルは <code>web/</code> の外に出ない(テスト済み)。拡張子も制限</td><td><code>cmd</code> と <code>server_dir</code> は、利用者が自由に指定できる(設計上、必要)</td></tr>
+<tr><td>秘密情報</td><td><code>secrets.json</code> は権限 600、フォルダはリポジトリの外。API はキーを返さない(生成直後のみ)</td><td>起動したプロセスの環境変数には、キーが入る(OS の標準的な範囲)</td></tr>
+<tr><td>ファイルの削除</td><td>ハブは、モデルを削除しない(コマンドを表示するだけ)</td><td>—</td></tr>
+<tr><td>外部設定の書き換え</td><td>初回に <code>.bak-patchbay</code> を作成。戻せる</td><td>—</td></tr>
+</table>
+
+<h2 id="howto">13. 拡張のしかた</h2>
+<h3>新しいアプリを足す</h3>
+<ol class="flow">
+<li><code>apps/&lt;名前&gt;/app.py</code> に、<code>App</code>(スクリプトで動くなら <code>ScriptApp</code>)の派生クラスを書く。必要なメソッドだけを上書きする(§4)。</li>
+<li><code>apps/__init__.py</code> の <code>APPS</code> に登録する。</li>
+<li><code>machine.json</code> の <code>services</code> に、サービスを足して、<code>"app": "&lt;名前&gt;"</code> を書く。</li>
+<li><code>tests/</code> に、起動コマンドとモデル一覧のテストを足す(<code>tests/helpers.py</code> の <code>EnvTest</code> が、一時フォルダの設定を作る)。</li>
+</ol>
+<h3>新しいテーマを足す</h3>
+<p><code>web/css/themes/&lt;id&gt;.css</code> を置く。先頭の1行を <code>/* name: 名前 | swatch: 背景 パネル アクセント | note: 説明 | order: 番号 */</code> にして、<code>html[data-theme=&lt;id&gt;]{ --bg: … }</code> で、CSS 変数(<code>--bg --panel --line --fg --mute --acc --ok --warn --err --on-acc</code>、グラフ用の <code>--c1〜--c4</code>)を書く。コードの変更は要らない。</p>
+
+<h2 id="test">14. テストと変更の管理</h2>
+<table>
+<tr><th>テスト</th><td><code>python3 -m unittest discover -s tests</code>(169件・約31秒)。標準ライブラリだけ。設定・プリセット・アプリ・ランチャー・モデルセット・ダウンロード・プロセス管理・モニター・HTTP API を、一時フォルダの設定で確認する(実際の設定には触れない)</td></tr>
+<tr><th>静的チェック</th><td><code>python3 tools/check_names.py patchbay</code>(Python: 未定義の名前と、未使用の import)/ <code>python3 tools/check_js.py</code>(画面: import した名前が export されているか・未使用の import・import 漏れ・import の循環・構文)。後者は、テストにも含まれる</td></tr>
+<tr><th>変更の管理</th><td>ローカルの git リポジトリ。<code>machine.json</code> <code>presets.json</code> <code>sets.json</code> は、<code>.gitignore</code> で除外。ライセンスは MIT(<code>LICENSE</code>)</td></tr>
+</table>
+
+<h2 id="review">15. 設計レビュー(整理後)</h2>
+<p>前回(整理の前)のレビューの指摘が、どうなったか。数値は、計測値(2026-10-18 時点)。</p>
+<table>
+<tr><th>#</th><th>指摘</th><th>状態</th><th>いま</th></tr>
+<tr><td>1</td><td>サーバーが1ファイルに、8つの責務(1,629行)</td><td><span class="tag good">解消</span></td><td>40ファイル・最大185行。責務ごとのパッケージ(<code>core / apps / downloads / monitor / api</code>)</td></tr>
+<tr><td>2</td><td>共通基盤に名前がなく、全体が <code>CFG</code> に直結。関数名 <code>X</code> / <code>P</code></td><td><span class="tag mid">改善</span></td><td><code>core/config.py</code> になり、<code>expand</code> / <code>to_path</code> / <code>models_dir</code> と名前を付けた。<code>CFG</code> の直接参照は、83関数 → 10モジュール(ただし、まだ辞書を直接読む)</td></tr>
+<tr><td>3</td><td>画面が1ファイルで、グローバル変数が多い</td><td><span class="tag good">解消</span></td><td>JavaScript 14ファイルの ES モジュール。グローバル変数はなくなり、共有の状態は <code>state.js</code> の <code>state</code> に集約。依存は一方向で、循環なし(<code>tools/check_js.py</code> が検査)</td></tr>
+<tr><td>4</td><td>モニターのサンプルが、位置で意味が決まる配列</td><td><span class="tag good">解消</span></td><td>名前付きの辞書。位置の参照は 0 か所</td></tr>
+<tr><td>5</td><td>サービスの定義に、暗黙のルールが多い。設定の検証がない</td><td><span class="tag good">解消</span></td><td>違いは、アプリのクラスに閉じ込めた(<code>app</code> キーで明示)。<code>machine.json</code> は、型の定義で検証(型の誤りは起動を止め、未知のキーは警告)</td></tr>
+<tr><td>6</td><td>読み込み時の副作用</td><td><span class="tag good">解消</span></td><td><code>config.init()</code> / <code>server.setup()</code> を呼ぶまで、何も読まない</td></tr>
+<tr><td>7</td><td>依存の循環(モデル一覧 ⇄ セット)</td><td><span class="tag good">解消</span></td><td>読み込み時の import は一方向。逆向きは、アプリの登録簿への遅延 import だけ(§3)</td></tr>
+<tr><td>8</td><td>長い関数</td><td><span class="tag mid">改善</span></td><td>最長 56 → 56行(<code>_download</code>)、起動まわりは 56 → 38行以下。<code>_download</code> は未分割</td></tr>
+<tr><td>9</td><td>グローバルな可変状態が、スレッドから直接触られる</td><td><span class="tag lo">未対応</span></td><td><code>CFG</code> / <code>RUN</code> / <code>OPS</code> / <code>DL</code> は、まだモジュールの状態</td></tr>
+<tr><td>10</td><td>プリセットの項目が、全サービスの和集合</td><td><span class="tag good">解消</span></td><td>項目は、各アプリが型つきで宣言(<code>preset_fields</code>)。保存時と一時起動のどちらも、そのサービスの項目だけを、型で検証</td></tr>
+<tr><td>11</td><td>HTTP のルーティングが <code>if / elif</code> の連鎖</td><td><span class="tag good">解消</span></td><td>ルート表(<code>api/routes.py</code>)。入力の検証は、ルートごとの型の定義で、処理の前に行う</td></tr>
+<tr><td>12</td><td>メッセージが日本語で直書き</td><td><span class="tag mid">対象外</span></td><td>多言語化は予定しない(日本語のみ)ので、辞書化もしない</td></tr>
+<tr><td>13</td><td>テストがない。例外の握りつぶしが広い</td><td><span class="tag good">解消</span> / <span class="tag lo">残り</span></td><td>169件。<code>except Exception</code> は 14 か所のまま(外部コマンドや監視まわり)</td></tr>
+<tr><td>14</td><td>命名の名残</td><td><span class="tag mid">改善</span></td><td>サーバー側は解消。画面側は、共有の状態の名前を整理(<code>S</code> → <code>state.status</code> など)。短い名前(<code>sp</code> <code>f1</code> <code>mx</code>)が、ファイルの中に残る</td></tr>
+</table>
+<h3>外部レビュー(Codex)の指摘と対応</h3>
+<p>2026-10-18、別のレビュー担当(Codex)に、コードレビューとセキュリティチェックを依頼した(Critical 1・High 2・Medium 11・Low 1)。指摘は、コードで再現・確認してから対応した。</p>
+<table>
+<tr><th>指摘</th><th>対応</th></tr>
+<tr><td>C1 認証なしの LAN 公開で、任意のコマンドを実行できる</td><td><b>設計どおり(対応しない)</b>。認証は任意の補足機能で、信頼できる LAN が前提。README と §12 に明記</td></tr>
+<tr><td>H1 似たドメインにトークンを送る</td><td>解消。正規ドメイン(とサブドメイン)の https だけ。リダイレクトで外す。テスト追加</td></tr>
+<tr><td>H2 <code>.part</code> のリンクで、置き場の外を上書きできる</td><td>解消。リンクなら書き込まない(<code>O_NOFOLLOW</code>)</td></tr>
+<tr><td>M1 SSRF</td><td>解消。内部アドレスは既定で拒否(<code>allow_private_downloads</code> で許可)。リダイレクトも確認</td></tr>
+<tr><td>M2 サイズ・接続・キューの上限がない</td><td>主な部分を解消(本文 4 MiB・接続 30 秒・待機 500 件・転送中の空き容量・ログは末尾だけ)。同時接続数の上限は、なし</td></tr>
+<tr><td>M3 同じ保存先を重ねて登録できる</td><td>解消。登録時に重複を拒否し、完成時も既存を上書きしない</td></tr>
+<tr><td>M4 読み込み〜書き込みにロックがない</td><td>解消(設定・セット・秘密情報・<code>RUN</code>)。<code>CFG</code> の直接共有など、構造の整理は今後の候補</td></tr>
+<tr><td>M5 400 でもセットが増える</td><td>解消。検証がすべて通ってから、セットとジョブを作る</td></tr>
+<tr><td>M6 例外で、ダウンロードの worker が止まる</td><td>解消。ジョブごとに例外を受け止める</td></tr>
+<tr><td>M7 セットが、リンク先を確認しない</td><td>解消。リンクを解決した先が、モデル置き場の中のものだけ</td></tr>
+<tr><td>M8 PID の使い回しで、別のプロセスを止める</td><td>解消(ハブが起動したもの)。開始時刻で照合</td></tr>
+<tr><td>M9 日本語の <code>token</code> で API が落ちる</td><td>解消。<code>token</code> は半角の英数字と記号だけ。比較はバイト列</td></tr>
+<tr><td>M10 ⚙ の保存ができない</td><td>解消(私たちの変更の副作用)。ポートを数値で送る。<code>refresh()</code> の未定義も修正。再発防止に、<code>tools/check_js.py</code> に「未定義の関数の呼び出し」の検出を追加し、画面と API の道筋・型のテストを追加</td></tr>
+<tr><td>M11 <code>secrets.json</code> の権限が戻らない</td><td>解消。毎回 600 で作り直す</td></tr>
+<tr><td>L1 Origin・Content-Type の比較が緩い</td><td>解消。Origin は http / https のみ(https はリバースプロキシ越しの利用のため許可)、Content-Type は完全一致</td></tr>
+</table>
+<h3>今後の候補</h3>
+<ul>
+<li><b>状態を持つオブジェクト化</b>(#9): <code>CFG</code> / <code>RUN</code> / <code>DL</code> の更新の入口を、限定する。</li>
+</ul>
+
+<h2 id="glossary">16. 用語</h2>
+<table>
+<tr><th>サービス</th><td>ハブが管理する、ソフトの単位(llama.cpp、Strata、ComfyUI、Forge)</td></tr>
+<tr><th>アプリ</th><td>サービスの知識の実装(<code>apps/&lt;名前&gt;</code>)。<code>App</code> の派生クラス</td></tr>
+<tr><th>排他グループ</th><td>同時に1つしか動かさないサービスの集まり(<code>group</code> が同じもの)</td></tr>
+<tr><th>プリセット</th><td>サービスと起動時の設定の組。llama.cpp では、モデルごとの「お気に入り」</td></tr>
+<tr><th>モデルセット</th><td>ComfyUI / Forge の選択肢を絞る、モデルファイルのまとまり。「共通」セットは、全セットに足される</td></tr>
+<tr><th>表示用フォルダ</th><td>モデルセットのファイルへのシンボリックリンクだけを置いたフォルダ。ソフトは、このフォルダを見る</td></tr>
+<tr><th>ランチャー</th><td><code>webui.sh</code> を通さず、venv の python で、ソフト本体を直接起動する、ハブの方式</td></tr>
+<tr><th>種別(カテゴリ)</th><td>ComfyUI / Forge のモデルの種類(checkpoints、vae、loras など)=保存するフォルダ</td></tr>
+<tr><th>マーカー</th><td>インストール場所に、あるはずのファイル。導入済みかの判定に使う</td></tr>
+<tr><th>ルール(ダウンロード)</th><td>アプリごとに違う、保存先・拡張子・種別の推定・完了後の処理(<code>downloads/rules.py</code>)</td></tr>
+</table>
+</main>
+</div>
+</body>
+</html>

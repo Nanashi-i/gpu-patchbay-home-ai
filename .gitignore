@@ -1,0 +1,13 @@
+# 実物の設定（環境固有・個人設定。公開しない）
+machine.json
+presets.json
+# 実行時に生成されるもの
+migration-log*.jsonl
+*.bak*
+*.tmp
+__pycache__/
+*.pyc
+.venv/
+
+# 実物のモデルセット(個人設定)
+sets.json

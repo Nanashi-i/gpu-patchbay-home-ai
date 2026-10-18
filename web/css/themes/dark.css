@@ -1,0 +1,2 @@
+/* name: ダーク | swatch: #0f1115 #181b21 #4f9dff | order: 10 */
+html[data-theme=dark]{color-scheme:dark;--bg:#0f1115;--panel:#181b21;--line:#2a2f38;--fg:#e6e8eb;--mute:#8b93a1;--acc:#4f9dff;--ok:#3ecf8e;--warn:#f5a524;--err:#f0616d;--on-acc:#fff}

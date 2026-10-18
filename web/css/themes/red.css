@@ -1,0 +1,2 @@
+/* name: レッド | swatch: #111111 #1c1c1c #ed1c24 | order: 60 */
+html[data-theme=red]{color-scheme:dark;--bg:#111111;--panel:#1c1c1c;--line:#333333;--fg:#f2f2f2;--mute:#9b9b9b;--acc:#ed1c24;--ok:#35c88a;--warn:#f5a524;--err:#ff8a80;--on-acc:#fff;--c2:#d9d9d9;--c3:#f5a524;--c4:#4fc3f7}

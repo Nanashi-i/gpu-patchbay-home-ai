@@ -1,0 +1,3 @@
+/* name: デフォルト | swatch: #14161a #f4f5f7 #4f9dff | note: OS の設定に合わせる | order: 0 */
+:root{color-scheme:dark light;--bg:#14161a;--panel:#1d2026;--line:#2c313a;--fg:#e6e8eb;--mute:#8b93a1;--acc:#4f9dff;--ok:#3ecf8e;--warn:#f5a524;--err:#f0616d;--on-acc:#fff;--c1:var(--acc);--c2:var(--ok);--c3:var(--warn);--c4:var(--err)}
+@media (prefers-color-scheme: light){:root{--bg:#f4f5f7;--panel:#fff;--line:#dcdfe4;--fg:#1c2026;--mute:#667085;--acc:#1a73e8;--ok:#13a05f;--warn:#c77d00;--err:#d4313f}}

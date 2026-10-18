@@ -1,0 +1,29 @@
+[
+  {
+    "id": "example-llama",
+    "name": "Example (llama.cpp)",
+    "service": "llama",
+    "model": "your-model.gguf",
+    "ctx": 8192,
+    "reasoning": "auto",
+    "ngl": "999",
+    "favorite": true,
+    "flags": [
+      "--jinja"
+    ],
+    "note": "models フォルダに置いた GGUF を指定します。ダッシュボードのモデルタイルからも作れます"
+  },
+  {
+    "id": "comfyui",
+    "name": "ComfyUI",
+    "service": "comfy",
+    "favorite": true,
+    "note": "ComfyUI を、venv の python で直接起動します"
+  },
+  {
+    "id": "forge",
+    "name": "Forge",
+    "service": "forge",
+    "note": "Forge(launch.py)を、ハブが直接起動します"
+  }
+]

@@ -1,0 +1,18 @@
+/* name: ガラス調 | swatch: #c4d9ef #ffffff #3399ff | note: ガラス調の水色・光沢のあるボタン | order: 70 */
+html[data-theme=glass]{color-scheme:light;--bg:#dce8f5;--panel:#ffffff;--line:#a9bfd9;--fg:#1b2633;--mute:#5b6f87;--acc:#2a7fd4;--ok:#3a9e1f;--warn:#d98a00;--err:#c8321f;--on-acc:#fff;--c1:#3399ff;--c2:#4caf2a;--c3:#f7941d;--c4:#cc3333}
+/* ガラス調: ガラス調の水色、光沢のあるボタン、角の小さい白いウィンドウ */
+html[data-theme=glass] body{font-family:"Noto Sans JP",sans-serif;background:linear-gradient(160deg,#bcd3ec 0%,#e3eefa 38%,#c4d9ef 100%) fixed}
+html[data-theme=glass] header{background:linear-gradient(#f0f6fd,#c6dbf1);border-bottom:1px solid #7d9cc3;box-shadow:inset 0 1px 0 #fff}
+html[data-theme=glass] nav button{color:#1e395b}
+html[data-theme=glass] nav button.on{background:linear-gradient(#fff,#e1ecf8);border:1px solid #8ea6c4;border-radius:4px;box-shadow:inset 0 1px 0 #fff}
+html[data-theme=glass] .svc,html[data-theme=glass] .card,html[data-theme=glass] .mtile,html[data-theme=glass] .panel,html[data-theme=glass] .box,html[data-theme=glass] .tile,html[data-theme=glass] #tp-pop{border-radius:5px;border-color:#9fb7d3;box-shadow:0 1px 3px #3a5a8040,inset 0 1px 0 #fff}
+html[data-theme=glass] .tile.sel{border-color:#3c7fb1;background:linear-gradient(#f4faff,#dcefff)}
+html[data-theme=glass] button.b{background:linear-gradient(#f6f6f6 45%,#e6e6e6 50%,#d2d2d2);border:1px solid #707070;border-radius:3px;color:#000;box-shadow:inset 0 1px 0 #fffc}
+html[data-theme=glass] button.b:hover{background:linear-gradient(#eaf6fd 45%,#d9f0fc 50%,#bee6fd);border-color:#3c7fb1}
+html[data-theme=glass] button.b:disabled{background:#f4f4f4;border-color:#adb2b5;color:#838383}
+html[data-theme=glass] button.p{background:linear-gradient(#eaf6fd 45%,#bee6fd 50%,#a7d9f5);border-color:#3c7fb1;color:#000}
+html[data-theme=glass] button.p:hover{background:linear-gradient(#f4fbff 45%,#d1efff 50%,#9ad4f5)}
+html[data-theme=glass] button.d{color:#a01c10}
+html[data-theme=glass] input,html[data-theme=glass] select,html[data-theme=glass] textarea{background:#fff;border-color:#abadb3;border-radius:3px}
+html[data-theme=glass] .bt,html[data-theme=glass] .prog{background:#e6e6e6;border:1px solid #bcbcbc}
+html[data-theme=glass] .chip{background:linear-gradient(#fff,#eef4fb)}
