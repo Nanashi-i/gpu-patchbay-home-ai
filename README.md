@@ -2,11 +2,14 @@
 
 > *Home GPU Patchbay for Local AI — one GPU, one AI at a time.*
 
-ローカルで動かす AI のソフト(llama.cpp / Strata / ComfyUI / Stable Diffusion WebUI Forge など)を、**ブラウザの1画面から起動・停止・切り替え**するためのダッシュボードです。
+## はじめに
+最近、ローカルLLMが流行っています。沢山のソフトウェア、沢山のモデル、色々試す方も多いと思います。沢山試していくと、徐々にモデルの切り替えなどが大変になると思います。
+特に私のような一般人の多くはGPUもたくさん持っていない人も多く、わざわざ切り替えが必要になることも多々あるかと思います。
+そこで、ローカルで動かす AI のソフト(llama.cpp / Strata / ComfyUI / Stable Diffusion WebUI Forge など)を、**ブラウザの1画面から起動・停止・切り替え**するためのダッシュボードを作成しました。
+※Claude君に超働いてもらいました。
+> 日本語のみ(多言語化の予定はありません)。ライセンスは [MIT](LICENSE)にしています。(改変・商用利用も自由)。
 
-GPU を取り合うソフトは同時に動かせないので、「どれか1つを選ぶと、動いているものを止めて、選んだものを起動する」ところまでを、このツールが引き受けます(以降、このツールを「ハブ」と呼びます)。ソフトのインストールは、利用者が各ソフトの手順で済ませておく前提です。
-
-> 日本語のみ(多言語化の予定はありません)。ライセンスは [MIT](LICENSE) です(改変・商用利用も自由)。
+📖 **仕様書(設計・API・設計レビュー)**: <https://nanashi-i.github.io/gpu-patchbay-home-ai/>
 
 ## できること
 
@@ -21,16 +24,17 @@ GPU を取り合うソフトは同時に動かせないので、「どれか1つ
 | **テーマ** | 8種類のカラーテーマ(ダーク、淡い青、グリーン、ガラス調など) |
 
 ## 動作環境
-
 - **Linux**(`/proc` と `ss` を使います。macOS / Windows は未対応)
-- **Python 3**(標準ライブラリだけで動きます。追加のインストールは不要です。動作確認は Python 3.14 のみ)
-- GPU の監視には `nvidia-smi`(NVIDIA GPU の場合)
-- 管理したいソフトのうち、必要なもの(下の「ソフトの置き場所」を参照)
+- **Python 3**(標準ライブラリだけで動作可能。確認は Python 3.14 のみ)
+- GPU の監視には `nvidia-smi`のみ使用(NVIDIA GPU の場合)
+- 管理したいソフトのうち、必要なもの(下の「クイックスタート」の「2. 使いたいソフトを入れる」を参照)
 
 ## クイックスタート
 
+### 1. ハブを入れて、起動する
+
 ```bash
-git clone <このリポジトリ> ~/gpu-patchbay-home-ai
+git clone https://github.com/Nanashi-i/gpu-patchbay-home-ai.git ~/gpu-patchbay-home-ai
 cd ~/gpu-patchbay-home-ai
 ./start.sh            # バックグラウンドで起動して、URL と PID を表示します
 ./stop.sh             # 停止します
@@ -46,7 +50,16 @@ GPU Patchbay を起動しました。PID: 12345
 
 初回起動時に、`machine.example.json` と `presets.example.json` から、設定ファイル `machine.json` と `presets.json` が自動で作られます。これが、あなたの設定です(`.gitignore` で、公開されないようになっています)。
 
-### ソフトの置き場所
+### 2. 使いたいソフトを入れる(ソフトの置き場所)
+
+ハブは、ソフトを入れません。使いたいソフトを、次の場所に、各ソフトの手順で入れてください(**1つだけでも動きます**)。
+
+| ソフト | 置き場所 | 入れ方の要点 |
+|---|---|---|
+| [llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md) | `~/ai-apps/llama.cpp/` | `git clone` して、`cmake -B build -DGGML_CUDA=ON` → `cmake --build build --config Release -j`(NVIDIA GPU の場合。ほかの GPU は、公式のビルド手順に従ってください)。`build/bin/llama-server` ができれば OK |
+| [ComfyUI](https://github.com/comfyanonymous/ComfyUI#manual-install-windows-linux) | `~/ai-apps/ComfyUI/` | `git clone` して、フォルダの中に `python3 -m venv venv` で仮想環境を作り、`venv/bin/pip install` で [PyTorch](https://pytorch.org/get-started/locally/) と `requirements.txt` を入れる(ハブは `venv/bin/python main.py` を起動します) |
+| [Forge](https://github.com/lllyasviel/stable-diffusion-webui-forge) | `~/ai-apps/stable-diffusion-webui-forge/` | `git clone` するだけ。Python 3.10 / 3.11 が必要です(venv と依存は、初回の起動で、ハブが作ります。時間がかかります) |
+| Strata | `~/ai-apps/Strata/` | Strata を使う場合のみ(`serve/server.py` と `run-*.sh` があるフォルダ) |
 
 標準の配置は、次のとおりです。
 
@@ -60,6 +73,14 @@ GPU Patchbay を起動しました。PID: 12345
 - **別の場所にある場合**は、ダッシュボードの各サービスの **⚙** から、インストール場所を指定します。標準の場所に無くても、ホーム直下などによくある場所を探して、見つかれば「これを使う」と提案します。
 - 使わないサービスは、⚙ で「使わない」にすると、「未導入・非表示のサービス」にまとまります。
 - 設定ファイルを直接書く人は、`machine.json` の先頭にある `root` / `apps_root` / `models_root` で、親フォルダをまとめて変えられます(→ [仕様書](https://nanashi-i.github.io/gpu-patchbay-home-ai/))。
+
+### 3. モデルを入れて、起動する
+
+モデルは、手で置かなくても、画面から入れられます。
+
+1. ブラウザで、ハブの URL を開きます(初期設定では <http://127.0.0.1:5000>)。
+2. **ダウンロード**タブで、保存先のサービスを選び、Hugging Face の URL を貼って「確認」→ ファイルを選んで「ダウンロード開始」。保存先のフォルダ(`~/ai-models/…`)は、自動で作られます。
+3. **サービス**タブで、モデルを選んで「起動」します。ほかのサービスが動いていれば、自動で止まります。
 
 ### 別の端末から使う(LAN に公開する)
 
