@@ -49,7 +49,7 @@ ol.flow li::before{content:counter(s);position:absolute;left:12px;top:6px;width:
 </nav>
 <main>
 <h1>GPU Patchbay Home AI 仕様書</h1>
-<p class="sub">対象: <code>patchbay/</code>(サーバー、Python 40ファイル・2,407行)/ <code>web/</code>(画面、HTML 1 + CSS 9 + JavaScript 14 ファイル)/ <code>tests/</code>(169件)・日本語版</p>
+<p class="sub">対象: <code>patchbay/</code>(サーバー、Python 40ファイル・2,407行)/ <code>web/</code>(画面、HTML 1 + CSS 9 + JavaScript 14 ファイル)/ <code>tests/</code>(170件)・日本語版</p>
 
 <h2 id="overview">1. 概要</h2>
 <p>ローカルで動かす AI のソフト(<b>サービス</b>)を、ブラウザから起動・停止・切り替えするダッシュボード。GPU を取り合うサービスは、<b>排他グループ</b>に入れて、同時に動かさない。ソフトのインストールは利用者が済ませておく前提で、ハブは「起動と管理」だけを担当する。</p>
@@ -57,7 +57,7 @@ ol.flow li::before{content:counter(s);position:absolute;left:12px;top:6px;width:
 <tr><th>設計の方針</th><td>① 依存なし(Python 標準ライブラリだけ・画面もビルド不要) ② 設定はファイル(JSON)で、手でも書ける ③ ハブはファイルを消さない(コマンドを見せるだけ) ④ <b>アプリごとの違いは、アプリのフォルダに閉じ込める</b>(共通の仕組みは、アプリの中身を知らない) ⑤ 状態の保存は最小限(ほとんどメモリ上)</td></tr>
 <tr><th>動作環境</th><td>Linux(<code>/proc</code>、<code>ss</code>、<code>nvidia-smi</code> を使用)/ Python 3(動作確認は 3.14)</td></tr>
 <tr><th>起動と停止</th><td><code>./start.sh</code>(バックグラウンドで起動し、URL と PID を表示。PID は <code>state_dir/hub.pid</code>、ログは <code>state_dir/hub.log</code>)/ <code>./stop.sh</code>(ハブにだけ SIGTERM、10 秒待って SIGKILL。サービスは、別のセッションなので、止まらない)。設定の誤りやポートの使用中は、起動前に理由を表示する。PID ファイルは、<code>/proc/&lt;pid&gt;/cmdline</code> に <code>hub.py</code> が含まれるときだけ信用する(別のプロセスを止めない)。<code>--foreground</code> は、前面での起動、<code>--status</code> は状態の確認</td></tr>
-<tr><th>自動起動(オプション)</th><td><code>./start.sh --install-service</code> で、systemd のユーザーサービス(<code>ExecStart=python3 hub.py</code>、<code>Restart=on-failure</code>、<code>KillMode=process</code>)に登録。登録後は、<code>start.sh</code> / <code>stop.sh</code> が、サービスを対象にする(<code>systemctl --user</code> と同じ)</td></tr>
+<tr><th>自動起動(オプション)</th><td><code>./start.sh --install-service</code> で、systemd のユーザーサービス(<code>ExecStart=python3 hub.py</code>、<code>Restart=on-failure</code>、<code>KillMode=process</code>)に登録。登録後は、<code>start.sh</code> / <code>stop.sh</code> が、サービスを対象にする(<code>systemctl --user</code> と同じ。ただし、ExecStart が<b>そのフォルダの <code>hub.py</code></b> のときだけ。別のフォルダのクローンからは、止めない)</td></tr>
 <tr><th>エントリポイント</th><td><code>python3 hub.py</code> または <code>python3 -m patchbay</code>(同じ。<code>hub.py</code> は、薄い入口)。<code>hub.py --info</code> は、スクリプト用に、設定(状態の置き場・host・port・認証の有無)を表示する</td></tr>
 </table>
 
@@ -331,7 +331,7 @@ ol.flow li::before{content:counter(s);position:absolute;left:12px;top:6px;width:
 
 <h2 id="test">14. テストと変更の管理</h2>
 <table>
-<tr><th>テスト</th><td><code>python3 -m unittest discover -s tests</code>(169件・約31秒)。標準ライブラリだけ。設定・プリセット・アプリ・ランチャー・モデルセット・ダウンロード・プロセス管理・モニター・HTTP API を、一時フォルダの設定で確認する(実際の設定には触れない)</td></tr>
+<tr><th>テスト</th><td><code>python3 -m unittest discover -s tests</code>(170件・約31秒)。標準ライブラリだけ。設定・プリセット・アプリ・ランチャー・モデルセット・ダウンロード・プロセス管理・モニター・HTTP API を、一時フォルダの設定で確認する(実際の設定には触れない)</td></tr>
 <tr><th>静的チェック</th><td><code>python3 tools/check_names.py patchbay</code>(Python: 未定義の名前と、未使用の import)/ <code>python3 tools/check_js.py</code>(画面: import した名前が export されているか・未使用の import・import 漏れ・import の循環・構文)。後者は、テストにも含まれる</td></tr>
 <tr><th>変更の管理</th><td>ローカルの git リポジトリ。<code>machine.json</code> <code>presets.json</code> <code>sets.json</code> は、<code>.gitignore</code> で除外。ライセンスは MIT(<code>LICENSE</code>)</td></tr>
 </table>
@@ -352,7 +352,7 @@ ol.flow li::before{content:counter(s);position:absolute;left:12px;top:6px;width:
 <tr><td>10</td><td>プリセットの項目が、全サービスの和集合</td><td><span class="tag good">解消</span></td><td>項目は、各アプリが型つきで宣言(<code>preset_fields</code>)。保存時と一時起動のどちらも、そのサービスの項目だけを、型で検証</td></tr>
 <tr><td>11</td><td>HTTP のルーティングが <code>if / elif</code> の連鎖</td><td><span class="tag good">解消</span></td><td>ルート表(<code>api/routes.py</code>)。入力の検証は、ルートごとの型の定義で、処理の前に行う</td></tr>
 <tr><td>12</td><td>メッセージが日本語で直書き</td><td><span class="tag mid">対象外</span></td><td>多言語化は予定しない(日本語のみ)ので、辞書化もしない</td></tr>
-<tr><td>13</td><td>テストがない。例外の握りつぶしが広い</td><td><span class="tag good">解消</span> / <span class="tag lo">残り</span></td><td>169件。<code>except Exception</code> は 14 か所のまま(外部コマンドや監視まわり)</td></tr>
+<tr><td>13</td><td>テストがない。例外の握りつぶしが広い</td><td><span class="tag good">解消</span> / <span class="tag lo">残り</span></td><td>170件。<code>except Exception</code> は 14 か所のまま(外部コマンドや監視まわり)</td></tr>
 <tr><td>14</td><td>命名の名残</td><td><span class="tag mid">改善</span></td><td>サーバー側は解消。画面側は、共有の状態の名前を整理(<code>S</code> → <code>state.status</code> など)。短い名前(<code>sp</code> <code>f1</code> <code>mx</code>)が、ファイルの中に残る</td></tr>
 </table>
 <h3>外部レビュー(Codex)の指摘と対応</h3>

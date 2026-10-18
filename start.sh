@@ -69,6 +69,7 @@ UNITEOF
       echo "ログ: $LOGFILE"
     else
       echo "GPU Patchbay: 起動していません(起動: ./start.sh)"
+      other="$(service_elsewhere)" && [ -n "$other" ] && echo "(別の場所のハブが、systemd のサービスとして稼働中です: $other)"
     fi
     systemctl --user is-enabled --quiet "$SERVICE" 2>/dev/null && echo "自動起動: 登録済み(解除: ./start.sh --uninstall-service)"
     exit 0
@@ -87,6 +88,7 @@ UNITEOF
       exit 0
     fi
     if port_open; then
+      other="$(service_elsewhere)" && [ -n "$other" ] && echo "(別の場所のハブが、systemd のサービスとして稼働中です: $other)" >&2
       echo "ポート $HUB_PORT は、ほかのプログラムが使っています。machine.json の port を変えるか、そのプログラムを止めてください" >&2
       exit 1
     fi

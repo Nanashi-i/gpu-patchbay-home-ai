@@ -38,9 +38,20 @@ connect_host() {
 
 port_open() { (exec 3<>"/dev/tcp/$(connect_host)/$HUB_PORT") 2>/dev/null; }
 
-# systemd のサービスとして動いているか(別の設定ファイルで試すとき(PATCHBAY_MACHINE)は、見ない)
+# systemd のサービスとして動いているか。ただし、**このフォルダの hub.py を起動するサービス**だけを対象にする
+# (別のフォルダにクローンしたものから、別の場所のハブを、止めてしまわないため)。別の設定ファイルで試すとき(PATCHBAY_MACHINE)は、見ない
 service_active() {
-  [ -z "${PATCHBAY_MACHINE:-}" ] && systemctl --user is-active --quiet "$SERVICE" 2>/dev/null
+  [ -z "${PATCHBAY_MACHINE:-}" ] || return 1
+  systemctl --user is-active --quiet "$SERVICE" 2>/dev/null || return 1
+  systemctl --user show -p ExecStart --value "$SERVICE" 2>/dev/null | grep -qF "$DIR/hub.py"
+}
+
+# サービスが動いていて、ただし、別のフォルダのハブのとき(その場所を出す)
+service_elsewhere() {
+  [ -z "${PATCHBAY_MACHINE:-}" ] || return 1
+  systemctl --user is-active --quiet "$SERVICE" 2>/dev/null || return 1
+  service_active && return 1
+  systemctl --user show -p ExecStart --value "$SERVICE" 2>/dev/null | grep -oE '[^ ]+/hub\.py' | head -1
 }
 
 service_pid() { systemctl --user show -p MainPID --value "$SERVICE" 2>/dev/null; }

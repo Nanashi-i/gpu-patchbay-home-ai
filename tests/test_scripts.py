@@ -81,3 +81,25 @@ class StartStopScriptsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ServiceTargetTest(unittest.TestCase):
+    """systemd のサービスは、「このフォルダの hub.py」を起動するものだけを対象にする(別のフォルダのクローンから、別のハブを止めない)。"""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="patchbay-systemctl-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        stub = self.tmp / "systemctl"
+        stub.write_text('#!/bin/sh\n[ "$2" = show ] && { echo "{ path=/usr/bin/python3 ; argv[]=/usr/bin/python3 $FAKE_DIR/hub.py ; }"; exit 0; }\n'
+                        '[ "$2" = is-active ] && exit 0\nexit 1\n')
+        stub.chmod(0o755)
+
+    def active(self, fake_dir):
+        env = {k: v for k, v in os.environ.items() if k != "PATCHBAY_MACHINE"}
+        env.update(PATH=f"{self.tmp}:{os.environ['PATH']}", FAKE_DIR=fake_dir)
+        r = subprocess.run(["bash", "-c", f'. "{ROOT}/tools/hubenv.sh"; service_active'], env=env, capture_output=True, text=True)
+        return r.returncode == 0
+
+    def test_only_the_service_for_this_folder_counts(self):
+        self.assertTrue(self.active(str(ROOT)))
+        self.assertFalse(self.active("/somewhere/else/clone"))
