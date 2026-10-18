@@ -34,9 +34,12 @@
 ### 1. Gitからダウンロードする
 
 ```bash
-git clone https://github.com/Nanashi-i/gpu-patchbay-home-ai.git ~/gpu-patchbay-home-ai
-cd ~/gpu-patchbay-home-ai
+mkdir -p ~/local-ai && cd ~/local-ai          # 親フォルダ(名前は自由。ソフトとモデルも、この中に置きます)
+git clone https://github.com/Nanashi-i/gpu-patchbay-home-ai.git
+cd gpu-patchbay-home-ai
 ```
+
+親フォルダは、ホームの直下でなくても、好きな場所・名前でかまいません。**このツールを置いたフォルダの 1 つ上**が、標準の親フォルダになり、その中の `apps/`(各ソフト)と `models/`(モデル)を使います(設定は要りません)。ホームの直下に置くと、`~/apps` と `~/models` になるので、親フォルダを作ることをおすすめします。
 
 ### 2. 使いたいソフトを入れる(ソフトの置き場所)
 
@@ -44,23 +47,24 @@ cd ~/gpu-patchbay-home-ai
 
 | ソフト | 置き場所 | 入れ方 |
 |---|---|---|
-| [llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md) | `~/ai-apps/llama.cpp/` | ビルドして、`build/bin/llama-server` ができれば OK(下の例) |
-| [ComfyUI](https://github.com/comfyanonymous/ComfyUI#manual-install-windows-linux) | `~/ai-apps/ComfyUI/` | `venv`(仮想環境)を作って、依存を入れる(下の例)。ダッシュボードは `venv/bin/python main.py` を起動します |
-| [Forge](https://github.com/lllyasviel/stable-diffusion-webui-forge) | `~/ai-apps/stable-diffusion-webui-forge/` | `git clone` するだけ(下の例)。Python 3.10 / 3.11 が必要です |
-| [Strata](https://github.com/Niko1221/Strata) | `~/ai-apps/Strata/` | Strata を使う場合のみ(下の例) |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md) | `~/local-ai/apps/llama.cpp/` | ビルドして、`build/bin/llama-server` ができれば OK(下の例) |
+| [ComfyUI](https://github.com/comfyanonymous/ComfyUI#manual-install-windows-linux) | `~/local-ai/apps/ComfyUI/` | `venv`(仮想環境)を作って、依存を入れる(下の例)。ダッシュボードは `venv/bin/python main.py` を起動します |
+| [Forge](https://github.com/lllyasviel/stable-diffusion-webui-forge) | `~/local-ai/apps/stable-diffusion-webui-forge/` | `git clone` するだけ(下の例)。Python 3.10 / 3.11 が必要です |
+| [Strata](https://github.com/Niko1221/Strata) | `~/local-ai/apps/Strata/` | Strata を使う場合のみ(下の例) |
 
 標準の配置は、次のとおりです。
 
 ```
-~/gpu-patchbay-home-ai/      このツール本体
-~/ai-apps/     各ソフト: llama.cpp / ComfyUI / stable-diffusion-webui-forge / Strata
-~/ai-models/   モデル(ダッシュボードが自動で作ります): llama / strata / comfyui / forge
+~/local-ai/                    親フォルダ(名前は自由。本体の1つ上のフォルダが、標準の親になります)
+├── gpu-patchbay-home-ai/      このツール本体
+├── apps/                      各ソフト: llama.cpp / ComfyUI / stable-diffusion-webui-forge / Strata
+└── models/                    モデル(ダッシュボードが自動で作ります): llama / strata / comfyui / forge
 ```
 
 - 標準の場所にソフトがあれば、そのまま動きます。
 - **別の場所にある場合**は、ダッシュボードの各サービスの **⚙** から、インストール場所を指定します。標準の場所に無くても、ホーム直下などによくある場所を探して、見つかれば「これを使う」と提案します。
 - 使わないサービスは、⚙ で「使わない」にすると、「未導入・非表示のサービス」にまとまります。
-- 設定ファイルを直接書く人は、`machine.json` の先頭にある `root` / `apps_root` / `models_root` で、親フォルダをまとめて変えられます(→ [仕様書](https://nanashi-i.github.io/gpu-patchbay-home-ai/))。
+- 設定ファイルを直接書く人は、`machine.json` に `root` / `apps_root` / `models_root` を書くと、置き場所を変えられます(省略すると、本体の 1 つ上のフォルダが親になり、その中の `apps/` と `models/` を使います。→ [仕様書](https://nanashi-i.github.io/gpu-patchbay-home-ai/))。
 
 モデルは、後回しでも構いません(手順 4 で、画面から入れられます)。
 
@@ -69,8 +73,8 @@ cd ~/gpu-patchbay-home-ai
 NVIDIA GPU の例です。ほかの GPU は、[公式のビルド手順](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md)に従ってください。
 
 ```bash
-git clone https://github.com/ggml-org/llama.cpp ~/ai-apps/llama.cpp
-cd ~/ai-apps/llama.cpp
+git clone https://github.com/ggml-org/llama.cpp ~/local-ai/apps/llama.cpp
+cd ~/local-ai/apps/llama.cpp
 cmake -B build -DGGML_CUDA=ON
 cmake --build build --config Release -j
 ```
@@ -78,16 +82,16 @@ cmake --build build --config Release -j
 #### ・Strataの導入
 
 ```bash
-git clone https://github.com/Niko1221/Strata ~/ai-apps/Strata
+git clone https://github.com/Niko1221/Strata ~/local-ai/apps/Strata
 ```
 
-その後は、[Strata の README](https://github.com/Niko1221/Strata) の手順に従ってください。ダッシュボードは、`~/ai-apps/Strata/` の中の `run-*.sh` を、起動できるものとして一覧に出します(起動用のスクリプトは、ご自身で用意してください)。
+その後は、[Strata の README](https://github.com/Niko1221/Strata) の手順に従ってください。ダッシュボードは、`~/local-ai/apps/Strata/` の中の `run-*.sh` を、起動できるものとして一覧に出します(起動用のスクリプトは、ご自身で用意してください)。
 
 #### ・ComfyUIの導入
 
 ```bash
-git clone https://github.com/comfyanonymous/ComfyUI ~/ai-apps/ComfyUI
-cd ~/ai-apps/ComfyUI
+git clone https://github.com/comfyanonymous/ComfyUI ~/local-ai/apps/ComfyUI
+cd ~/local-ai/apps/ComfyUI
 python3 -m venv venv
 # 先に PyTorch を入れます。コマンドは、公式の表示どおりに(https://pytorch.org/get-started/locally/ で、Pip・Linux・お使いの CUDA を選ぶ)
 venv/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cuXXX    # cuXXX は、お使いの CUDA に合わせる
@@ -99,7 +103,7 @@ venv/bin/pip install -r requirements.txt
 venv と依存は、初回の起動で、ダッシュボードが作ります(時間がかかります)。
 
 ```bash
-git clone https://github.com/lllyasviel/stable-diffusion-webui-forge ~/ai-apps/stable-diffusion-webui-forge
+git clone https://github.com/lllyasviel/stable-diffusion-webui-forge ~/local-ai/apps/stable-diffusion-webui-forge
 ```
 
 ### 3. ダッシュボードを起動する
@@ -123,7 +127,7 @@ GPU Patchbay を起動しました。PID: 12345
 
 モデルは、手で置かなくても、画面から入れられます。
 
-1. 手順 3 で開いた画面の、**ダウンロード**タブで、保存先のサービスを選び、Hugging Face の URL を貼って「確認」→ ファイルを選んで「ダウンロード開始」。保存先のフォルダ(`~/ai-models/…`)は、自動で作られます。
+1. 手順 3 で開いた画面の、**ダウンロード**タブで、保存先のサービスを選び、Hugging Face の URL を貼って「確認」→ ファイルを選んで「ダウンロード開始」。保存先のフォルダ(`~/local-ai/models/…`)は、自動で作られます。
 2. **サービス**タブで、モデルを選んで「起動」します。ほかのサービスが動いていれば、自動で止まります。
 
 ### (オプション)別の端末から使う(LAN に公開する)

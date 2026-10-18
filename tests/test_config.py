@@ -14,8 +14,23 @@ class ConfigTest(EnvTest):
         self.assertEqual(config.expand("{home}/z"), f"{config.HOME}/z")
 
     def test_roots_defaults_follow_root(self):
-        self.assertEqual(self.env.apps, self.env.tmp / "ai-apps")
-        self.assertEqual(self.env.models, self.env.tmp / "ai-models")
+        self.assertEqual(self.env.apps, self.env.tmp / "apps")
+        self.assertEqual(self.env.models, self.env.tmp / "models")
+
+    def test_root_defaults_to_the_folder_above_the_tool(self):
+        """root を書かなければ、本体のフォルダの1つ上が、親フォルダになる(apps/ と models/ が、その中にできる)。"""
+        d = self.env.tmp / "noroot"
+        d.mkdir()
+        (d / "machine.json").write_text(json.dumps({"state_dir": str(d / "state"), "services": {}}))
+        config.init(d / "machine.json")
+        self.assertEqual(config.ROOTS.root, config.REPO_DIR.parent)
+        self.assertEqual(config.ROOTS.apps, config.REPO_DIR.parent / "apps")
+        self.assertEqual(config.ROOTS.models, config.REPO_DIR.parent / "models")
+
+    def test_example_config_does_not_pin_the_roots(self):
+        example = json.loads((config.REPO_DIR / "machine.example.json").read_text())
+        for key in ("root", "apps_root", "models_root"):
+            self.assertNotIn(key, example)             # 書くと、標準の「本体の1つ上」が、効かなくなる
 
     def test_service_dirs(self):
         self.assertEqual(config.models_dir("llama"), self.env.models / "llama")

@@ -4,9 +4,6 @@
   "token": "",
   "allowed_hosts": [],
   "allow_private_downloads": false,
-  "root": "{home}",
-  "apps_root": "{root}/ai-apps",
-  "models_root": "{root}/ai-models",
   "state_dir": "{home}/.local/state/gpu-patchbay-home-ai",
   "services": {
     "llama": {

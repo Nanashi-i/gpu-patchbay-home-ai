@@ -203,8 +203,8 @@ ol.flow li::before{content:counter(s);position:absolute;left:12px;top:6px;width:
 <tr><td><code>token</code></td><td>空</td><td>空なら認証なし(<b>認証は任意の機能で、空のままでも起動する</b>)。設定すると、すべての <code>/api/*</code> に <code>X-Token</code> ヘッダが必要。半角の英数字・記号だけ(1〜200 文字)</td></tr>
 <tr><td><code>allowed_hosts</code></td><td>空</td><td>画面を開くときに使ってよい名前(ホスト名)の追加。<b>初めから許可</b>: IP アドレス・<code>localhost</code>・このPCのホスト名(と <code>&lt;ホスト名&gt;.local</code>)。それ以外の名前(自分で決めた名前・DNS・リバースプロキシのドメイン)で開くときだけ、書く(ポート番号は書かない)。書き換えたら再起動。§12 を参照</td></tr>
 <tr><td><code>allow_private_downloads</code></td><td><code>false</code></td><td><code>true</code> にすると、ダウンロードで、内部のアドレス(このPC・LAN・リンクローカル)へ接続できる。NAS など、LAN 内から取りたいときだけ</td></tr>
-<tr><td><code>root</code></td><td><code>{home}</code></td><td>置き場所の親フォルダ(近道)</td></tr>
-<tr><td><code>apps_root</code> / <code>models_root</code></td><td><code>{root}/ai-apps</code> / <code>{root}/ai-models</code></td><td>ソフトの置き場 / モデルの置き場</td></tr>
+<tr><td><code>root</code></td><td>本体のフォルダの 1 つ上</td><td>置き場所の親フォルダ(近道)。省略すると、このツールを置いたフォルダの 1 つ上になる(例: <code>~/local-ai/gpu-patchbay-home-ai/</code> に置けば、<code>~/local-ai/</code>)</td></tr>
+<tr><td><code>apps_root</code> / <code>models_root</code></td><td><code>{root}/apps</code> / <code>{root}/models</code></td><td>ソフトの置き場 / モデルの置き場。サービスごとの <code>dir</code> / <code>models_dir</code> が、最優先</td></tr>
 <tr><td><code>state_dir</code></td><td><code>{home}/.local/state/gpu-patchbay-home-ai</code></td><td>ログ・実行状態・秘密情報の置き場</td></tr>
 <tr><td><code>monitor</code></td><td><code>{interval_sec:5, history_hours:3}</code></td><td>モニターの記録間隔と保持時間</td></tr>
 <tr><td><code>hf_token</code> / <code>civitai_token</code></td><td>(なし)</td><td>旧方式。画面で登録した値が優先される</td></tr>

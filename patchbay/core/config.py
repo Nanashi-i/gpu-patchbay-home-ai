@@ -51,9 +51,9 @@ def init(machine_file=None):
     CFG.clear()
     CFG.update(data)
     ROOTS.machine_file, ROOTS.presets_file, ROOTS.sets_file = mf, mf.parent / "presets.json", mf.parent / "sets.json"
-    ROOTS.root = Path(os.path.expanduser(_home(CFG.get("root", "{home}"))))
-    ROOTS.apps = Path(os.path.expanduser(_under_root(CFG.get("apps_root", "{root}/ai-apps"))))
-    ROOTS.models = Path(os.path.expanduser(_under_root(CFG.get("models_root", "{root}/ai-models"))))
+    ROOTS.root = Path(os.path.expanduser(_home(CFG.get("root", str(REPO_DIR.parent)))))   # 既定: 本体のフォルダの1つ上
+    ROOTS.apps = Path(os.path.expanduser(_under_root(CFG.get("apps_root", "{root}/apps"))))
+    ROOTS.models = Path(os.path.expanduser(_under_root(CFG.get("models_root", "{root}/models"))))
     ROOTS.state = Path(os.path.expanduser(_home(CFG.get("state_dir", "{home}/.local/state/gpu-patchbay-home-ai"))))
     ROOTS.state.mkdir(parents=True, exist_ok=True)
 
